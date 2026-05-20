@@ -48,7 +48,14 @@ export function Navbar() {
     router.refresh();
   };
 
-  const navLinks = [
+  interface NavLink {
+    href: string;
+    label: string;
+    icon: React.ElementType;
+    badge?: string;
+  }
+
+  const navLinks: NavLink[] = [
     { href: "/", label: "Dashboard", icon: Compass },
     { href: "/scan", label: "AI Scanner", icon: Sparkles },
     { href: "/history", label: "History", icon: History },

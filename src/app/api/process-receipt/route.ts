@@ -39,9 +39,26 @@ export async function POST(request: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // 3. Construct Gemini system prompt and request payload
-    const prompt =
-      "You are an expert financial data extractor. Analyze this receipt image and extract the following information into a strict JSON object: merchant_name (string), total_amount (number, no currency symbols), date (ISO 8601 format), and category (Must be exactly one of: Food, Transport, Medical, Education, Shopping, Entertainment, Utilities, Other). Return ONLY the raw JSON object, without markdown formatting or code blocks.";
+    // 3. Construct Gemini prompt — VALIDATE first, then extract
+    const prompt = `You are an expert financial document validator and data extractor.
+
+STEP 1 — VALIDATION:
+First, determine if this image is a bill, receipt, invoice, or any financial transaction document (printed or digital). 
+A valid document must show at least: a merchant/store name OR a monetary amount OR itemised purchases.
+Selfies, screenshots of apps/code, photos of people/objects/places, memes, QR codes without context, or any non-financial images are INVALID.
+
+STEP 2 — EXTRACTION (only if valid):
+If it IS a valid financial document, extract: merchant_name (string), total_amount (number, no currency symbols), date (ISO 8601 format YYYY-MM-DD), and category (exactly one of: Food, Transport, Medical, Education, Shopping, Entertainment, Utilities, Other).
+
+Return ONLY a raw JSON object in this exact shape, no markdown, no code blocks:
+{
+  "is_receipt": true or false,
+  "rejection_reason": "brief reason if is_receipt is false, else null",
+  "merchant_name": "string or null",
+  "total_amount": number or null,
+  "date": "YYYY-MM-DD or null",
+  "category": "string or null"
+}`;
 
     const imagePart = {
       inlineData: {
@@ -55,12 +72,9 @@ export async function POST(request: Request) {
     const responseText = result.response.text().trim();
 
     // 5. Cleanse and parse Gemini response
-    // Sometimes models add ```json ... ``` formatting even when explicitly told not to.
     let jsonText = responseText;
     if (jsonText.startsWith("```")) {
-      // Strip starting code fences
       jsonText = jsonText.replace(/^```(?:json)?/i, "");
-      // Strip ending code fences
       jsonText = jsonText.replace(/```$/i, "");
       jsonText = jsonText.trim();
     }
@@ -68,7 +82,16 @@ export async function POST(request: Request) {
     try {
       const parsedData = JSON.parse(jsonText);
 
-      // Ensure all standard fields exist
+      // 6. Reject non-receipts
+      if (!parsedData.is_receipt) {
+        const reason = parsedData.rejection_reason || "This image does not appear to be a receipt or bill.";
+        return NextResponse.json(
+          { error: `Invalid image: ${reason} Please upload a photo of a receipt, bill, or invoice.` },
+          { status: 422 }
+        );
+      }
+
+      // 7. Ensure all standard fields exist
       const formattedResponse = {
         merchant_name: parsedData.merchant_name || "Unknown Merchant",
         total_amount: typeof parsedData.total_amount === "number" ? parsedData.total_amount : parseFloat(parsedData.total_amount) || 0,

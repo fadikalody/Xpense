@@ -504,20 +504,20 @@ export default function DashboardPage() {
           <p className="text-slate-400 text-sm">Analyze your spending, insights, and budget limits</p>
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {streak > 0 && (
-            <Badge variant="success" className="bg-amber-500/15 text-amber-400 border-amber-500/20 px-3 py-1 text-sm font-bold flex items-center gap-1.5 animate-pulse-ring shrink-0">
-              <Flame className="h-4.5 w-4.5 fill-amber-500 text-amber-500 animate-bounce" />
+            <Badge variant="success" className="bg-amber-500/15 text-amber-400 border-amber-500/20 px-3 py-1 text-sm font-bold flex items-center gap-1.5 animate-pulse-ring">
+              <Flame className="h-4 w-4 fill-amber-500 text-amber-500 animate-bounce" />
               <span>{streak} Day Streak!</span>
             </Badge>
           )}
 
-          <Button variant="outline" className="w-full sm:w-auto border-slate-800 text-slate-300 hover:text-white cursor-pointer shrink-0" onClick={() => setIsBudgetModalOpen(true)}>
+          <Button variant="outline" className="flex-1 sm:flex-none border-slate-800 text-slate-300 hover:text-white cursor-pointer" onClick={() => setIsBudgetModalOpen(true)}>
             <Wallet className="mr-2 h-4 w-4" />
             Set Budget
           </Button>
 
-          <Button variant="gradient" className="w-full sm:w-auto font-semibold text-white cursor-pointer shrink-0" onClick={() => setIsManualModalOpen(true)}>
+          <Button variant="gradient" className="flex-1 sm:flex-none font-semibold text-white cursor-pointer" onClick={() => setIsManualModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Quick Entry
           </Button>

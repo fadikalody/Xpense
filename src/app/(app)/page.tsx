@@ -26,7 +26,8 @@ import {
   Percent,
   Tag,
   ShoppingBag,
-  ListFilter
+  ListFilter,
+  ScanLine
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -515,6 +516,11 @@ export default function DashboardPage() {
           <Button variant="outline" className="flex-1 sm:flex-none border-slate-800 text-slate-300 hover:text-white cursor-pointer" onClick={() => setIsBudgetModalOpen(true)}>
             <Wallet className="mr-2 h-4 w-4" />
             Set Budget
+          </Button>
+
+          <Button variant="outline" className="flex-1 sm:flex-none border-violet-500/30 text-violet-400 hover:text-violet-300 hover:border-violet-400/50 cursor-pointer" onClick={() => router.push("/scan")}>
+            <ScanLine className="mr-2 h-4 w-4" />
+            AI Scanner
           </Button>
 
           <Button variant="gradient" className="flex-1 sm:flex-none font-semibold text-white cursor-pointer" onClick={() => setIsManualModalOpen(true)}>

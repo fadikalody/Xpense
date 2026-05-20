@@ -155,7 +155,7 @@ export default function HistoryPage() {
       return;
     }
 
-    const headers = ["ID", "Transaction Type", "Merchant/Source", "Category", "Amount ($)", "Logged Date", "Receipt Public Link"];
+    const headers = ["ID", "Transaction Type", "Merchant/Source", "Category", "Amount (₹)", "Logged Date", "Receipt Public Link"];
     
     const rows = filteredTransactions.map((tx) => [
       tx.id,
@@ -344,7 +344,7 @@ export default function HistoryPage() {
                     <div className={`text-right font-bold text-sm sm:text-base ${
                       tx.type === "income" ? "text-emerald-400" : "text-slate-100"
                     }`}>
-                      {tx.type === "income" ? "+" : "-"}${tx.amount.toFixed(2)}
+                      {tx.type === "income" ? "+" : "-"}₹{tx.amount.toFixed(2)}
                     </div>
 
                     <div className="flex items-center gap-2">

@@ -50,7 +50,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/", label: "Dashboard", icon: Compass },
-    { href: "/scan", label: "AI Scanner", icon: Sparkles, badge: "Hero" },
+    { href: "/scan", label: "AI Scanner", icon: Sparkles },
     { href: "/history", label: "History", icon: History },
     { href: "/budgets", label: "Budgets", icon: Wallet },
   ];
@@ -60,15 +60,19 @@ export function Navbar() {
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-white/10 shadow-md shadow-violet-500/10">
-            <Image
-              src="/icons/icon-192.png"
-              alt="Xpense logo"
-              fill
-              className="object-cover"
-            />
+          <div className="relative flex items-center justify-center">
+            <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="url(#logo-grad)" />
+              <path d="M7 6L17 18M17 6L7 18" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+              <defs>
+                <linearGradient id="logo-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#8b5cf6" />
+                  <stop stopColor="#6366f1" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <span className="text-xl font-bold tracking-tight text-white bg-gradient-to-r from-violet-400 to-indigo-200 bg-clip-text text-transparent">
+          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-200 bg-clip-text text-transparent">
             Xpense
           </span>
         </Link>
@@ -82,8 +86,8 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-white ${
-                  isActive ? "text-violet-400" : "text-slate-400"
+                className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-slate-900 dark:hover:text-white ${
+                  isActive ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -104,21 +108,21 @@ export function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full text-slate-400 hover:text-white cursor-pointer"
+              className="rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
-              {theme === "dark" ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-700" />}
+              {theme === "dark" ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-600 dark:text-slate-400" />}
             </Button>
           )}
 
           <div className="hidden md:flex items-center gap-3 pl-2 border-l border-border/40">
-            <span className="text-xs font-medium text-slate-400 max-w-[120px] truncate">
+            <span className="text-xs font-medium text-slate-550 dark:text-slate-400 max-w-[120px] truncate">
               {userEmail}
             </span>
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full text-slate-400 hover:text-red-400 cursor-pointer"
+              className="rounded-full text-slate-500 dark:text-slate-400 hover:text-red-400 cursor-pointer"
               onClick={handleLogout}
               title="Sign Out"
             >
@@ -130,7 +134,7 @@ export function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden rounded-full text-slate-400 hover:text-white cursor-pointer"
+            className="md:hidden rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -149,8 +153,10 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center justify-between text-base font-medium p-2 rounded-lg hover:bg-slate-900 transition-colors ${
-                    isActive ? "text-violet-400 bg-slate-900/40" : "text-slate-400"
+                  className={`flex items-center justify-between text-base font-medium p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors ${
+                    isActive 
+                      ? "text-violet-600 dark:text-violet-400 bg-violet-500/10 dark:bg-slate-900/40" 
+                      : "text-slate-600 dark:text-slate-400"
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -168,7 +174,7 @@ export function Navbar() {
             })}
 
             <div className="border-t border-border/40 pt-4 mt-2 flex items-center justify-between px-2">
-              <span className="text-xs text-slate-400 truncate max-w-[200px]">
+              <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
                 Logged in as: {userEmail}
               </span>
               <Button

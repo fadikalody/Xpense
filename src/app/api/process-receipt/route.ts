@@ -37,10 +37,10 @@ export async function POST(request: Request) {
 
     // 2. Initialize Gemini API and model
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // 3. Construct Gemini system prompt and request payload
-    const prompt = 
+    const prompt =
       "You are an expert financial data extractor. Analyze this receipt image and extract the following information into a strict JSON object: merchant_name (string), total_amount (number, no currency symbols), date (ISO 8601 format), and category (Must be exactly one of: Food, Transport, Medical, Education, Shopping, Entertainment, Utilities, Other). Return ONLY the raw JSON object, without markdown formatting or code blocks.";
 
     const imagePart = {
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     try {
       const parsedData = JSON.parse(jsonText);
-      
+
       // Ensure all standard fields exist
       const formattedResponse = {
         merchant_name: parsedData.merchant_name || "Unknown Merchant",

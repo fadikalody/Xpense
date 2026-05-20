@@ -14,7 +14,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { 
   TrendingUp, 
   TrendingDown, 
-  DollarSign, 
+  IndianRupee, 
   Wallet, 
   Flame, 
   Sparkles, 
@@ -312,14 +312,14 @@ export default function DashboardPage() {
     // Top spending category overall
     if (pieChartData.length > 0) {
       const topCat = [...pieChartData].sort((a, b) => b.value - a.value)[0];
-      insights.push(`Your highest spending category is ${topCat.name} at $${topCat.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}.`);
+      insights.push(`Your highest spending category is ${topCat.name} at ₹${topCat.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}.`);
     }
 
     // Budget warnings
     budgets.forEach((b) => {
       const spend = getCategorySpendThisMonth(b.category);
       if (spend > b.monthly_limit) {
-        insights.push(`Budget Alert: You exceeded your monthly limit for ${b.category} by $${(spend - b.monthly_limit).toFixed(2)}!`);
+        insights.push(`Budget Alert: You exceeded your monthly limit for ${b.category} by ₹${(spend - b.monthly_limit).toFixed(2)}!`);
       } else if (spend > b.monthly_limit * 0.85) {
         insights.push(`Budget Warning: You have used ${((spend / b.monthly_limit) * 100).toFixed(0)}% of your ${b.category} budget.`);
       }
@@ -544,7 +544,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-400">
-              ${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ₹{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[10px] text-slate-500 mt-1">Combined total income logged</p>
           </CardContent>
@@ -561,7 +561,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-400">
-              ${totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ₹{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[10px] text-slate-500 mt-1">Combined expenses scan & manual</p>
           </CardContent>
@@ -573,12 +573,12 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-slate-400">Net Balance</CardTitle>
             <div className="h-8 w-8 rounded-full bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
-              <DollarSign className="h-4 w-4" />
+              <IndianRupee className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${balance >= 0 ? "text-violet-300" : "text-red-400"}`}>
-              {balance < 0 && "-"}${Math.abs(balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {balance < 0 && "-"}₹{Math.abs(balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[10px] text-slate-500 mt-1">Disposable funds remaining</p>
           </CardContent>
@@ -659,7 +659,7 @@ export default function DashboardPage() {
                         ))}
                       </Pie>
                       <Tooltip 
-                        formatter={(value) => [`$${value}`, "Amount"]}
+                        formatter={(value) => [`₹${value}`, "Amount"]}
                         contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px" }}
                         itemStyle={{ fontSize: "11px", color: "#fff" }}
                       />
@@ -674,7 +674,7 @@ export default function DashboardPage() {
                         className="w-2.5 h-2.5 rounded-full shrink-0" 
                         style={{ backgroundColor: CATEGORY_COLORS[entry.name] }}
                       />
-                      <span className="truncate">{entry.name}: ${entry.value.toFixed(0)}</span>
+                      <span className="truncate">{entry.name}: ₹{entry.value.toFixed(0)}</span>
                     </div>
                   ))}
                 </div>
@@ -702,7 +702,7 @@ export default function DashboardPage() {
               Manage
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4 max-h-72 overflow-y-auto pr-1">
+          <CardContent className="space-y-4 max-h-[320px] overflow-hidden pr-1">
             {budgets.length === 0 ? (
               <div className="text-center py-8 text-slate-500 text-xs space-y-3">
                 <p>You haven&apos;t set any category budgets for this month.</p>
@@ -711,42 +711,81 @@ export default function DashboardPage() {
                 </Button>
               </div>
             ) : (
-              budgets.map((b) => {
-                const spent = getCategorySpendThisMonth(b.category);
-                const limit = b.monthly_limit;
-                const percentage = limit > 0 ? (spent / limit) * 100 : 0;
-                const isOverBudget = spent > limit;
+              <>
+                {/* Aggregate Total Budget Card */}
+                {(() => {
+                  const totalLimit = budgets.reduce((sum, b) => sum + b.monthly_limit, 0);
+                  const totalSpent = budgets.reduce((sum, b) => sum + getCategorySpendThisMonth(b.category), 0);
+                  const totalPercentage = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
+                  const isTotalOver = totalSpent > totalLimit;
 
-                return (
-                  <div key={b.id} className="space-y-1 bg-slate-950/20 p-2.5 rounded-lg border border-white/2">
-                    <div className="flex justify-between items-center text-xs font-semibold">
-                      <span className="text-slate-300 flex items-center gap-1.5">
-                        <span 
-                          className="w-2 h-2 rounded-full shrink-0" 
-                          style={{ backgroundColor: CATEGORY_COLORS[b.category] || "#fff" }}
-                        />
-                        {b.category}
-                      </span>
-                      <span className={isOverBudget ? "text-red-400" : "text-slate-400"}>
-                        ${spent.toFixed(0)} <span className="text-slate-500 font-normal">/ ${limit.toFixed(0)}</span>
-                      </span>
+                  return (
+                    <div className="space-y-1 bg-gradient-to-r from-violet-950/20 to-indigo-950/20 p-3 rounded-lg border border-violet-500/10 shadow-lg shadow-violet-950/5">
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-violet-300 flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-violet-400 shrink-0 shadow-sm animate-pulse" />
+                          Total Budget
+                        </span>
+                        <span className={isTotalOver ? "text-red-400 font-extrabold" : "text-violet-200"}>
+                          ₹{totalSpent.toFixed(0)} <span className="text-slate-500 font-normal">/ ₹{totalLimit.toFixed(0)}</span>
+                        </span>
+                      </div>
+                      <Progress 
+                        value={totalSpent} 
+                        max={totalLimit} 
+                        className="h-2" 
+                        indicatorClassName={
+                          isTotalOver 
+                            ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
+                            : totalPercentage > 85 
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" 
+                            : "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"
+                        }
+                      />
                     </div>
+                  );
+                })()}
 
-                    <Progress 
-                      value={spent} 
-                      max={limit} 
-                      className="h-1.5" 
-                      indicatorClassName={
-                        isOverBudget 
-                          ? "bg-gradient-to-r from-red-500 to-rose-600" 
-                          : percentage > 85 
-                          ? "bg-gradient-to-r from-amber-500 to-orange-500" 
-                          : "bg-gradient-to-r from-violet-500 to-indigo-500"
-                      }
-                    />
-                  </div>
-                );
-              })
+                {/* Scrollable list of categories */}
+                <div className="space-y-3 max-h-[170px] overflow-y-auto pr-1">
+                  {budgets.map((b) => {
+                    const spent = getCategorySpendThisMonth(b.category);
+                    const limit = b.monthly_limit;
+                    const percentage = limit > 0 ? (spent / limit) * 100 : 0;
+                    const isOverBudget = spent > limit;
+
+                    return (
+                      <div key={b.id} className="space-y-1 bg-slate-950/20 p-2.5 rounded-lg border border-white/2">
+                        <div className="flex justify-between items-center text-xs font-semibold">
+                          <span className="text-slate-300 flex items-center gap-1.5">
+                            <span 
+                              className="w-2 h-2 rounded-full shrink-0" 
+                              style={{ backgroundColor: CATEGORY_COLORS[b.category] || "#fff" }}
+                            />
+                            {b.category}
+                          </span>
+                          <span className={isOverBudget ? "text-red-400" : "text-slate-400"}>
+                            ₹{spent.toFixed(0)} <span className="text-slate-500 font-normal">/ ₹{limit.toFixed(0)}</span>
+                          </span>
+                        </div>
+
+                        <Progress 
+                          value={spent} 
+                          max={limit} 
+                          className="h-1.5" 
+                          indicatorClassName={
+                            isOverBudget 
+                              ? "bg-gradient-to-r from-red-500 to-rose-600" 
+                              : percentage > 85 
+                              ? "bg-gradient-to-r from-amber-500 to-orange-500" 
+                              : "bg-gradient-to-r from-violet-500 to-indigo-500"
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -812,7 +851,7 @@ export default function DashboardPage() {
             <div className="space-y-1">
               <Label htmlFor="tx-amount">Total Amount</Label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-slate-500 text-sm font-semibold">$</span>
+                <span className="absolute left-3 top-2.5 text-slate-500 text-sm font-semibold">₹</span>
                 <Input
                   id="tx-amount"
                   type="number"
@@ -896,7 +935,7 @@ export default function DashboardPage() {
           <div className="space-y-1">
             <Label htmlFor="bg-limit">Monthly Expense Limit</Label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-slate-500 text-sm font-semibold">$</span>
+              <span className="absolute left-3 top-2.5 text-slate-500 text-sm font-semibold">₹</span>
               <Input
                 id="bg-limit"
                 type="number"

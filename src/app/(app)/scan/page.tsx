@@ -466,7 +466,7 @@ export default function ScanPage() {
                   <div className="space-y-1">
                     <Label htmlFor="amount" className="text-slate-300">Total Amount</Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-slate-500 text-sm font-semibold">$</span>
+                      <span className="absolute left-3 top-2.5 text-slate-500 text-sm font-semibold">₹</span>
                       <Input
                         id="amount"
                         type="number"

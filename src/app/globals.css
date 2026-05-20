@@ -149,3 +149,47 @@ body {
 .animate-pulse-ring {
   animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* --- Light Mode Adaptive Overrides --- */
+/* These overrides instantly translate hardcoded dark mode utility classes to beautiful light mode equivalents */
+.light .text-white {
+  color: hsl(var(--foreground)) !important;
+}
+.light .border-white\/5,
+.light .border-white\/10,
+.light .border-white\/2,
+.light .border-white\/3 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+.light .bg-slate-950\/40,
+.light .bg-slate-900\/60,
+.light .bg-slate-900\/40,
+.light .bg-slate-950\/20,
+.light .bg-slate-900\/30 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  color: hsl(var(--foreground)) !important;
+}
+.light .border-slate-800 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+.light .text-slate-400,
+.light .text-slate-300,
+.light .text-slate-500 {
+  color: rgba(51, 65, 85, 0.8) !important;
+}
+.light .text-slate-100 {
+  color: hsl(var(--foreground)) !important;
+}
+.light .placeholder\:text-slate-600::placeholder,
+.light .placeholder\:text-slate-500::placeholder {
+  color: rgba(100, 116, 139, 0.6) !important;
+}
+.light .bg-slate-950 {
+  background-color: hsl(var(--background)) !important;
+}
+.light .hover\:bg-slate-900\/35:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+.light .bg-black {
+  background-color: #f1f5f9 !important;
+}

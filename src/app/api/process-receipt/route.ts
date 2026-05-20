@@ -68,7 +68,24 @@ Return ONLY a raw JSON object in this exact shape, no markdown, no code blocks:
     };
 
     // 4. Generate content
-    const result = await model.generateContent([prompt, imagePart]);
+    let result;
+    try {
+      result = await model.generateContent([prompt, imagePart]);
+    } catch (geminiErr: any) {
+      console.error("Gemini API error:", geminiErr);
+      // Check for overload/rate limit
+      const msg: string = geminiErr?.message || "";
+      if (msg.includes("503") || msg.toLowerCase().includes("unavailable") || msg.toLowerCase().includes("high demand")) {
+        return NextResponse.json(
+          { error: "The AI service is temporarily busy. Please wait a moment and try again." },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json(
+        { error: "The AI service encountered an error. Please try again." },
+        { status: 500 }
+      );
+    }
     const responseText = result.response.text().trim();
 
     // 5. Cleanse and parse Gemini response

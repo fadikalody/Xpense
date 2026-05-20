@@ -288,7 +288,7 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto overflow-x-hidden">
       {/* Page Header */}
       <div className="flex items-center gap-3">
         {step !== "upload" && (
@@ -312,10 +312,10 @@ export default function ScanPage() {
           <div className="absolute inset-0 bg-radial-gradient from-violet-600/10 via-transparent to-transparent pointer-events-none" />
           <CardContent className="flex flex-col items-center justify-center p-12 text-center relative z-10 space-y-6">
             {error && (
-              <Badge variant="destructive" className="py-2.5 px-4 rounded-xl flex items-center justify-start gap-2 border-red-500/20 max-w-md">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
-                <span className="text-left font-medium text-xs leading-relaxed text-red-200">{error}</span>
-              </Badge>
+              <div className="w-full max-w-md bg-red-950/60 border border-red-500/30 rounded-xl px-4 py-3 flex items-start gap-3">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-red-400 mt-0.5" />
+                <span className="text-xs font-medium text-red-200 leading-relaxed break-words overflow-hidden">{error}</span>
+              </div>
             )}
 
             <div className="h-20 w-20 rounded-full bg-violet-600/10 flex items-center justify-center border border-violet-500/20 text-violet-400 shadow-inner">

@@ -51,11 +51,11 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   // Sync function to push localStorage items to Supabase
   const syncOfflineQueue = useCallback(async () => {
     if (isSyncing) return;
-    
+
     const queue: OfflineTransaction[] = JSON.parse(
       localStorage.getItem("xpense_offline_queue") || "[]"
     );
-    
+
     if (queue.length === 0) return;
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -83,7 +83,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       // Sync complete, clear queue
       localStorage.removeItem("xpense_offline_queue");
       setQueueLength(0);
-      
+
       // Celebrate!
       confetti({
         particleCount: 50,
@@ -114,7 +114,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       setIsOnline(true);
       setIndicatorState("syncing");
       setShowStatusIndicator(true);
-      
+
       // Delay slightly for visual comfort before syncing
       setTimeout(() => {
         syncOfflineQueue();

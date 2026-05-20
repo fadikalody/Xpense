@@ -9,15 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
-import { 
-  Search, 
-  Download, 
-  Calendar, 
-  Tag, 
-  Eye, 
-  Trash2, 
-  Loader2, 
-  ArrowUpDown, 
+import {
+  Search,
+  Download,
+  Calendar,
+  Tag,
+  Eye,
+  Trash2,
+  Loader2,
+  ArrowUpDown,
   FileSpreadsheet,
   AlertCircle,
   TrendingUp,
@@ -156,7 +156,7 @@ export default function HistoryPage() {
     }
 
     const headers = ["ID", "Transaction Type", "Merchant/Source", "Category", "Amount (₹)", "Logged Date", "Receipt Public Link"];
-    
+
     const rows = filteredTransactions.map((tx) => [
       tx.id,
       tx.type.toUpperCase(),
@@ -310,17 +310,16 @@ export default function HistoryPage() {
           ) : (
             <div className="divide-y divide-border/30">
               {filteredTransactions.map((tx) => (
-                <div 
-                  key={tx.id} 
+                <div
+                  key={tx.id}
                   className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-900/35 transition-colors gap-3"
                 >
                   <div className="flex items-center gap-3">
                     {/* Status Icon */}
-                    <div className={`h-10 w-10 rounded-full shrink-0 flex items-center justify-center border ${
-                      tx.type === "income" 
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                    <div className={`h-10 w-10 rounded-full shrink-0 flex items-center justify-center border ${tx.type === "income"
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                         : "bg-red-500/10 border-red-500/20 text-red-400"
-                    }`}>
+                      }`}>
                       {tx.type === "income" ? <TrendingUp className="h-4.5 w-4.5" /> : <TrendingDown className="h-4.5 w-4.5" />}
                     </div>
 
@@ -341,9 +340,8 @@ export default function HistoryPage() {
 
                   {/* Actions & Price */}
                   <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-0 border-border/10 pt-2 sm:pt-0">
-                    <div className={`text-right font-bold text-sm sm:text-base ${
-                      tx.type === "income" ? "text-emerald-400" : "text-slate-100"
-                    }`}>
+                    <div className={`text-right font-bold text-sm sm:text-base ${tx.type === "income" ? "text-emerald-400" : "text-slate-100"
+                      }`}>
                       {tx.type === "income" ? "+" : "-"}₹{tx.amount.toFixed(2)}
                     </div>
 

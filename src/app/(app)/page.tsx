@@ -11,34 +11,34 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog } from "@/components/ui/dialog";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  IndianRupee, 
-  Wallet, 
-  Flame, 
-  Sparkles, 
-  Plus, 
-  Calendar, 
-  ArrowUpRight, 
-  AlertCircle, 
-  Loader2, 
-  Percent, 
-  Tag, 
+import {
+  TrendingUp,
+  TrendingDown,
+  IndianRupee,
+  Wallet,
+  Flame,
+  Sparkles,
+  Plus,
+  Calendar,
+  ArrowUpRight,
+  AlertCircle,
+  Loader2,
+  Percent,
+  Tag,
   ShoppingBag,
   ListFilter
 } from "lucide-react";
-import { 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend 
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend
 } from "recharts";
 import confetti from "canvas-confetti";
 import { useOfflineSync } from "@/components/offline-sync-provider";
@@ -216,11 +216,11 @@ export default function DashboardPage() {
 
   // 2. Budget tracking helper
   const currentMonthYear = new Date().toISOString().substring(0, 7); // "YYYY-MM"
-  
+
   const getCategorySpendThisMonth = (category: string) => {
     return transactions
-      .filter((tx) => 
-        tx.type === "expense" && 
+      .filter((tx) =>
+        tx.type === "expense" &&
         tx.category === category &&
         tx.date.substring(0, 7) === currentMonthYear
       )
@@ -283,18 +283,18 @@ export default function DashboardPage() {
     const twoWeeksAgo = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
 
     const foodThisWeek = transactions
-      .filter((tx) => 
-        tx.type === "expense" && 
-        tx.category === "Food" && 
+      .filter((tx) =>
+        tx.type === "expense" &&
+        tx.category === "Food" &&
         new Date(tx.date) >= oneWeekAgo &&
         new Date(tx.date) <= today
       )
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const foodLastWeek = transactions
-      .filter((tx) => 
-        tx.type === "expense" && 
-        tx.category === "Food" && 
+      .filter((tx) =>
+        tx.type === "expense" &&
+        tx.category === "Food" &&
         new Date(tx.date) >= twoWeeksAgo &&
         new Date(tx.date) < oneWeekAgo
       )
@@ -423,7 +423,7 @@ export default function DashboardPage() {
       setTxMerchant("");
       setTxCategory("Other");
       setTxDate(new Date().toISOString().split("T")[0]);
-      
+
       // Refresh
       fetchData();
 
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                 <BarChart data={barChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px" }}
                     itemStyle={{ fontSize: "12px", color: "#fff" }}
                     labelStyle={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold" }}
@@ -658,7 +658,7 @@ export default function DashboardPage() {
                           <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name] || "#94a3b8"} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value) => [`₹${value}`, "Amount"]}
                         contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px" }}
                         itemStyle={{ fontSize: "11px", color: "#fff" }}
@@ -670,8 +670,8 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 pt-2 border-t border-border/20">
                   {pieChartData.slice(0, 4).map((entry, index) => (
                     <div key={entry.name} className="flex items-center gap-1.5 truncate">
-                      <div 
-                        className="w-2.5 h-2.5 rounded-full shrink-0" 
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: CATEGORY_COLORS[entry.name] }}
                       />
                       <span className="truncate">{entry.name}: ₹{entry.value.toFixed(0)}</span>
@@ -730,16 +730,16 @@ export default function DashboardPage() {
                           ₹{totalSpent.toFixed(0)} <span className="text-slate-500 font-normal">/ ₹{totalLimit.toFixed(0)}</span>
                         </span>
                       </div>
-                      <Progress 
-                        value={totalSpent} 
-                        max={totalLimit} 
-                        className="h-2" 
+                      <Progress
+                        value={totalSpent}
+                        max={totalLimit}
+                        className="h-2"
                         indicatorClassName={
-                          isTotalOver 
-                            ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
-                            : totalPercentage > 85 
-                            ? "bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" 
-                            : "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"
+                          isTotalOver
+                            ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                            : totalPercentage > 85
+                              ? "bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                              : "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"
                         }
                       />
                     </div>
@@ -758,8 +758,8 @@ export default function DashboardPage() {
                       <div key={b.id} className="space-y-1 bg-slate-950/20 p-2.5 rounded-lg border border-white/2">
                         <div className="flex justify-between items-center text-xs font-semibold">
                           <span className="text-slate-300 flex items-center gap-1.5">
-                            <span 
-                              className="w-2 h-2 rounded-full shrink-0" 
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
                               style={{ backgroundColor: CATEGORY_COLORS[b.category] || "#fff" }}
                             />
                             {b.category}
@@ -769,16 +769,16 @@ export default function DashboardPage() {
                           </span>
                         </div>
 
-                        <Progress 
-                          value={spent} 
-                          max={limit} 
-                          className="h-1.5" 
+                        <Progress
+                          value={spent}
+                          max={limit}
+                          className="h-1.5"
                           indicatorClassName={
-                            isOverBudget 
-                              ? "bg-gradient-to-r from-red-500 to-rose-600" 
-                              : percentage > 85 
-                              ? "bg-gradient-to-r from-amber-500 to-orange-500" 
-                              : "bg-gradient-to-r from-violet-500 to-indigo-500"
+                            isOverBudget
+                              ? "bg-gradient-to-r from-red-500 to-rose-600"
+                              : percentage > 85
+                                ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                                : "bg-gradient-to-r from-violet-500 to-indigo-500"
                           }
                         />
                       </div>

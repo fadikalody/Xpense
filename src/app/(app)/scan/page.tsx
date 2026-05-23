@@ -228,7 +228,7 @@ export default function ScanPage() {
         .gte("date", `${transactionMonth}-01`)
         .lte("date", `${transactionMonth}-31`); // simplistically boundary check
 
-      const currentSpend = (transactionsData || []).reduce((sum, tx) => sum + parseFloat(tx.amount.toString()), 0);
+      const currentSpend = (transactionsData || []).reduce((sum: number, tx: any) => sum + parseFloat(tx.amount.toString()), 0);
 
       // Save new transaction
       const { error: insertErr } = await supabase

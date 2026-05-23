@@ -3,47 +3,30 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Dialog } from "@/components/ui/dialog";
 import {
-  TrendingUp,
-  TrendingDown,
-  IndianRupee,
-  Wallet,
   Flame,
   Sparkles,
   Plus,
-  Calendar,
-  ArrowUpRight,
+  Wallet,
   AlertCircle,
   Loader2,
-  Percent,
-  Tag,
-  ShoppingBag,
-  ListFilter,
   ScanLine
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend
-} from "recharts";
 import confetti from "canvas-confetti";
 import { useOfflineSync } from "@/components/offline-sync-provider";
 import { usePushNotifications } from "@/components/push-notification-provider";
+
+// Import decomposed components
+import { StatsSection } from "@/components/dashboard/stats-section";
+import { ChartsSection } from "@/components/dashboard/charts-section";
+import { BudgetsSection } from "@/components/dashboard/budgets-section";
+import { InsightsSection } from "@/components/dashboard/insights-section";
 
 // Constant Category Palette for Pie Chart
 const CATEGORY_COLORS: { [key: string]: string } = {
@@ -105,6 +88,50 @@ export default function DashboardPage() {
   const [budgetLimit, setBudgetLimit] = useState("");
   const [isSavingBudget, setIsSavingBudget] = useState(false);
 
+  // Streak calculation logic: consecutive calendar days with at least one transaction
+  const calculateStreak = (txList: Transaction[]) => {
+    if (txList.length === 0) {
+      setStreak(0);
+      return;
+    }
+
+    const uniqueDates = new Set(
+      txList
+        .filter((tx) => tx.type === "expense")
+        .map((tx) => tx.date.split("T")[0])
+    );
+
+    if (uniqueDates.size === 0) {
+      setStreak(0);
+      return;
+    }
+
+    let currentStreak = 0;
+    const checkDate = new Date(); // Start from today
+
+    while (true) {
+      const dateString = checkDate.toISOString().split("T")[0];
+      if (uniqueDates.has(dateString)) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1); // Check previous day
+      } else {
+        // If today has no expense, check if yesterday had one to maintain streak
+        if (currentStreak === 0) {
+          checkDate.setDate(checkDate.getDate() - 1);
+          const yesterdayString = checkDate.toISOString().split("T")[0];
+          if (uniqueDates.has(yesterdayString)) {
+            checkDate.setDate(checkDate.getDate() - 1);
+            currentStreak = 1;
+            continue;
+          }
+        }
+        break;
+      }
+    }
+
+    setStreak(currentStreak);
+  };
+
   // Fetch Data from Supabase
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -152,90 +179,47 @@ export default function DashboardPage() {
       // Calculate streak
       calculateStreak(formattedTx);
 
-      // ── Budget 90% Push Alert ──────────────────────────────────────────────
-      // Fire a local SW notification for any budget category at ≥90% utilization
-      if (permission === "granted" && isSubscribed) {
-        const thisMonth = new Date().toISOString().substring(0, 7);
-        formattedBg.forEach((b) => {
-          const spent = formattedTx
-            .filter(
-              (tx) =>
-                tx.type === "expense" &&
-                tx.category === b.category &&
-                tx.date.substring(0, 7) === thisMonth
-            )
-            .reduce((sum, tx) => sum + tx.amount, 0);
-
-          const pct = b.monthly_limit > 0 ? (spent / b.monthly_limit) * 100 : 0;
-          const alertKey = `budget-90-${b.category}-${thisMonth}`;
-
-          if (pct >= 90 && !firedBudgetAlerts.current.has(alertKey)) {
-            firedBudgetAlerts.current.add(alertKey);
-            sendLocalNotification(
-              `⚠️ Budget Alert: ${b.category}`,
-              `You've used ${pct.toFixed(0)}% of your ₹${b.monthly_limit.toFixed(0)} ${b.category} budget this month.`,
-              "/",
-              `xpense-budget-${b.category}`
-            );
-          }
-        });
-      }
-
     } catch (err: any) {
       console.error("Error loading dashboard data:", err);
       setError(err.message || "Failed to retrieve transaction data.");
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, permission, isSubscribed, sendLocalNotification]);
+  }, [supabase]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Streak calculation logic: consecutive calendar days with at least one transaction
-  const calculateStreak = (txList: Transaction[]) => {
-    if (txList.length === 0) {
-      setStreak(0);
-      return;
-    }
+  // ── Decoupled Budget 90% Push Alert ─────────────────────────────────────────
+  useEffect(() => {
+    if (permission !== "granted" || !isSubscribed || budgets.length === 0 || transactions.length === 0) return;
 
-    const uniqueDates = new Set(
-      txList
-        .filter((tx) => tx.type === "expense")
-        .map((tx) => tx.date.split("T")[0])
-    );
+    const thisMonth = new Date().toISOString().substring(0, 7);
+    budgets.forEach((b) => {
+      const spent = transactions
+        .filter(
+          (tx) =>
+            tx.type === "expense" &&
+            tx.category === b.category &&
+            tx.date.substring(0, 7) === thisMonth
+        )
+        .reduce((sum, tx) => sum + tx.amount, 0);
 
-    if (uniqueDates.size === 0) {
-      setStreak(0);
-      return;
-    }
+      const pct = b.monthly_limit > 0 ? (spent / b.monthly_limit) * 100 : 0;
+      const alertKey = `budget-90-${b.category}-${thisMonth}`;
 
-    let currentStreak = 0;
-    const checkDate = new Date(); // Start from today
-
-    while (true) {
-      const dateString = checkDate.toISOString().split("T")[0];
-      if (uniqueDates.has(dateString)) {
-        currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1); // Check previous day
-      } else {
-        // If today has no expense, check if yesterday had one to maintain streak
-        if (currentStreak === 0) {
-          checkDate.setDate(checkDate.getDate() - 1);
-          const yesterdayString = checkDate.toISOString().split("T")[0];
-          if (uniqueDates.has(yesterdayString)) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            currentStreak = 1;
-            continue;
-          }
-        }
-        break;
+      if (pct >= 90 && !firedBudgetAlerts.current.has(alertKey)) {
+        firedBudgetAlerts.current.add(alertKey);
+        sendLocalNotification(
+          `⚠️ Budget Alert: ${b.category}`,
+          `You've used ${pct.toFixed(0)}% of your ₹${b.monthly_limit.toFixed(0)} ${b.category} budget this month.`,
+          "/",
+          `xpense-budget-${b.category}`
+        );
       }
-    }
-
-    setStreak(currentStreak);
-  };
+    });
+  }, [permission, isSubscribed, budgets, transactions, sendLocalNotification]);
 
   // 1. Calculate Stats
   const totalIncome = transactions
@@ -570,296 +554,30 @@ export default function DashboardPage() {
         </Badge>
       )}
 
-      {/* 3 Overview Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Income Card */}
-        <Card className="glass border-white/5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-emerald-500/5 blur-2xl pointer-events-none" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-400">Total Income</CardTitle>
-            <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-              <TrendingUp className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-400">
-              ₹{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[10px] text-slate-500 mt-1">Combined total income logged</p>
-          </CardContent>
-        </Card>
+      {/* Stats Section component */}
+      <StatsSection totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} />
 
-        {/* Expenses Card */}
-        <Card className="glass border-white/5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-red-500/5 blur-2xl pointer-events-none" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-400">Total Expenses</CardTitle>
-            <div className="h-8 w-8 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20">
-              <TrendingDown className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-400">
-              ₹{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[10px] text-slate-500 mt-1">Combined expenses scan & manual</p>
-          </CardContent>
-        </Card>
-
-        {/* Net Balance Card */}
-        <Card className="glass border-white/5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-violet-500/5 blur-2xl pointer-events-none" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-400">Net Balance</CardTitle>
-            <div className="h-8 w-8 rounded-full bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
-              <IndianRupee className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${balance >= 0 ? "text-violet-300" : "text-red-400"}`}>
-              {balance < 0 && "-"}₹{Math.abs(balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[10px] text-slate-500 mt-1">Disposable funds remaining</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Monthly Trend Chart */}
-        <Card className="glass border-white/5 lg:col-span-8">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-violet-400" />
-              Monthly Comparison
-            </CardTitle>
-            <CardDescription className="text-slate-400 text-xs">
-              Income versus expenses logged over the last 6 months
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-72 pl-0">
-            {transactions.length === 0 ? (
-              <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
-                <ListFilter className="h-8 w-8 opacity-40" />
-                <span>No statistical history to plot yet.</span>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px" }}
-                    itemStyle={{ fontSize: "12px", color: "#fff" }}
-                    labelStyle={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold" }}
-                  />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
-                  <Bar dataKey="Income" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                  <Bar dataKey="Expense" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Category Breakdown (Pie) */}
-        <Card className="glass border-white/5 lg:col-span-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-violet-400" />
-              Category Spend
-            </CardTitle>
-            <CardDescription className="text-slate-400 text-xs">
-              Expense allocation across categories
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-72 flex flex-col justify-between p-4">
-            {pieChartData.length === 0 ? (
-              <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
-                <Percent className="h-8 w-8 opacity-40" />
-                <span>No expense distribution.</span>
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 min-h-[180px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={75}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name] || "#94a3b8"} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => [`₹${value}`, "Amount"]}
-                        contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px" }}
-                        itemStyle={{ fontSize: "11px", color: "#fff" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                {/* Custom Legend */}
-                <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 pt-2 border-t border-border/20">
-                  {pieChartData.slice(0, 4).map((entry, index) => (
-                    <div key={entry.name} className="flex items-center gap-1.5 truncate">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: CATEGORY_COLORS[entry.name] }}
-                      />
-                      <span className="truncate">{entry.name}: ₹{entry.value.toFixed(0)}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Charts Section component */}
+      <ChartsSection
+        transactions={transactions}
+        barChartData={barChartData}
+        pieChartData={pieChartData}
+        CATEGORY_COLORS={CATEGORY_COLORS}
+      />
 
       {/* Smart Insights & Budgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Budgets Tracker Card */}
-        <Card className="glass border-white/5">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-violet-400" />
-                Monthly Budgets
-              </CardTitle>
-              <CardDescription className="text-slate-400 text-xs">
-                Budget limits vs actual spent this month
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" className="h-8 text-xs text-violet-400 hover:text-violet-300 font-medium cursor-pointer" onClick={() => setIsBudgetModalOpen(true)}>
-              Manage
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4 max-h-[320px] overflow-hidden pr-1">
-            {budgets.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-xs space-y-3">
-                <p>You haven&apos;t set any category budgets for this month.</p>
-                <Button variant="outline" size="sm" className="border-slate-800 text-slate-400 hover:text-white" onClick={() => setIsBudgetModalOpen(true)}>
-                  Create Your First Budget Limit
-                </Button>
-              </div>
-            ) : (
-              <>
-                {/* Aggregate Total Budget Card */}
-                {(() => {
-                  const totalLimit = budgets.reduce((sum, b) => sum + b.monthly_limit, 0);
-                  const totalSpent = budgets.reduce((sum, b) => sum + getCategorySpendThisMonth(b.category), 0);
-                  const totalPercentage = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
-                  const isTotalOver = totalSpent > totalLimit;
+        {/* Budgets Tracker Section component */}
+        <BudgetsSection
+          budgets={budgets}
+          getCategorySpendThisMonth={getCategorySpendThisMonth}
+          setIsBudgetModalOpen={setIsBudgetModalOpen}
+          CATEGORY_COLORS={CATEGORY_COLORS}
+        />
 
-                  return (
-                    <div className="space-y-1 bg-gradient-to-r from-violet-950/20 to-indigo-950/20 p-3 rounded-lg border border-violet-500/10 shadow-lg shadow-violet-950/5">
-                      <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-violet-300 flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-violet-400 shrink-0 shadow-sm animate-pulse" />
-                          Total Budget
-                        </span>
-                        <span className={isTotalOver ? "text-red-400 font-extrabold" : "text-violet-200"}>
-                          ₹{totalSpent.toFixed(0)} <span className="text-slate-500 font-normal">/ ₹{totalLimit.toFixed(0)}</span>
-                        </span>
-                      </div>
-                      <Progress
-                        value={totalSpent}
-                        max={totalLimit}
-                        className="h-2"
-                        indicatorClassName={
-                          isTotalOver
-                            ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
-                            : totalPercentage > 85
-                              ? "bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-                              : "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"
-                        }
-                      />
-                    </div>
-                  );
-                })()}
-
-                {/* Scrollable list of categories */}
-                <div className="space-y-3 max-h-[170px] overflow-y-auto pr-1">
-                  {budgets.map((b) => {
-                    const spent = getCategorySpendThisMonth(b.category);
-                    const limit = b.monthly_limit;
-                    const percentage = limit > 0 ? (spent / limit) * 100 : 0;
-                    const isOverBudget = spent > limit;
-
-                    return (
-                      <div key={b.id} className="space-y-1 bg-slate-950/20 p-2.5 rounded-lg border border-white/2">
-                        <div className="flex justify-between items-center text-xs font-semibold">
-                          <span className="text-slate-300 flex items-center gap-1.5">
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: CATEGORY_COLORS[b.category] || "#fff" }}
-                            />
-                            {b.category}
-                          </span>
-                          <span className={isOverBudget ? "text-red-400" : "text-slate-400"}>
-                            ₹{spent.toFixed(0)} <span className="text-slate-500 font-normal">/ ₹{limit.toFixed(0)}</span>
-                          </span>
-                        </div>
-
-                        <Progress
-                          value={spent}
-                          max={limit}
-                          className="h-1.5"
-                          indicatorClassName={
-                            isOverBudget
-                              ? "bg-gradient-to-r from-red-500 to-rose-600"
-                              : percentage > 85
-                                ? "bg-gradient-to-r from-amber-500 to-orange-500"
-                                : "bg-gradient-to-r from-violet-500 to-indigo-500"
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Smart Financial Insights Card */}
-        <Card className="glass border-white/5 flex flex-col justify-between">
-          <div>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-violet-400 animate-pulse" />
-                AI Smart Insights
-              </CardTitle>
-              <CardDescription className="text-slate-400 text-xs">
-                Automatically calculated suggestions from logs
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-2 text-xs leading-relaxed max-h-72 overflow-y-auto">
-              {insightsList.map((insight, idx) => (
-                <div key={idx} className="flex gap-2.5 p-3 rounded-lg bg-slate-900/40 border border-white/3">
-                  <div className="h-5 w-5 shrink-0 rounded-full bg-violet-500/10 text-violet-400 flex items-center justify-center font-bold">
-                    {idx + 1}
-                  </div>
-                  <p className="text-slate-300 font-medium">{insight}</p>
-                </div>
-              ))}
-            </CardContent>
-          </div>
-          <CardFooter className="pt-2 border-t border-border/10 bg-slate-900/10">
-            <p className="text-[9px] text-slate-500 text-center w-full">
-              Insights are calculated based on your historical database uploads.
-            </p>
-          </CardFooter>
-        </Card>
+        {/* Smart Financial Insights Section component */}
+        <InsightsSection insightsList={insightsList} />
       </div>
-
 
       {/* Manual Entry Dialog Modal */}
       <Dialog isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Log Transaction Manual" description="Add income or expense transactions directly without scanning a receipt image.">

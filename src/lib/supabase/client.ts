@@ -7,6 +7,11 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
   console.warn("Supabase public credentials missing! Please configure them in your environment.");
 }
 
+let clientInstance: ReturnType<typeof createBrowserClient> | null = null;
+
 export const createClient = () => {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  if (!clientInstance) {
+    clientInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  }
+  return clientInstance;
 };

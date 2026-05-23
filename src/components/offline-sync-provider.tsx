@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { WifiOff, Wifi, Loader2, CloudLightning } from "lucide-react";
@@ -36,6 +36,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [queueLength, setQueueLength] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const isSyncingRef = useRef(false);
   const [showStatusIndicator, setShowStatusIndicator] = useState<boolean>(false);
   const [indicatorState, setIndicatorState] = useState<"offline" | "online" | "syncing">("online");
 
@@ -50,7 +51,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   // Sync function to push localStorage items to Supabase
   const syncOfflineQueue = useCallback(async () => {
-    if (isSyncing) return;
+    if (isSyncingRef.current) return;
 
     const queue: OfflineTransaction[] = JSON.parse(
       localStorage.getItem("xpense_offline_queue") || "[]"
@@ -61,6 +62,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return; // User is logged out, sync when logged in
 
+    isSyncingRef.current = true;
     setIsSyncing(true);
     setIndicatorState("syncing");
     setShowStatusIndicator(true);
@@ -105,8 +107,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       setIndicatorState("offline"); // Remain in offline state warning
     } finally {
       setIsSyncing(false);
+      isSyncingRef.current = false;
     }
-  }, [supabase, isSyncing]);
+  }, [supabase]);
 
   // Handle going online/offline
   useEffect(() => {

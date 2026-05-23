@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 
-// Configure VAPID keys once
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || "mailto:admin@xpense.app",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+// Configure VAPID keys safely
+let isVapidConfigured = false;
+function ensureVapidConfigured() {
+  if (isVapidConfigured) return;
+  const subject = process.env.VAPID_SUBJECT || "mailto:admin@xpense.app";
+  const pubKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privKey = process.env.VAPID_PRIVATE_KEY;
+  
+  if (pubKey && privKey) {
+    webpush.setVapidDetails(subject, pubKey, privKey);
+    isVapidConfigured = true;
+  } else {
+    console.warn("VAPID keys not configured in route.ts, skipping setVapidDetails");
+  }
+}
 
 export interface PushPayload {
   title: string;
@@ -24,6 +33,7 @@ export interface PushPayload {
 // Body: { userId: string, title: string, body: string, url?: string, tag?: string }
 export async function POST(req: NextRequest) {
   try {
+    ensureVapidConfigured();
     // Simple shared-secret auth for internal cron/edge function calls
     const cronSecret = req.headers.get("x-cron-secret");
     if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {

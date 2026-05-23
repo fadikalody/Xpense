@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -43,6 +43,7 @@ import {
 } from "recharts";
 import confetti from "canvas-confetti";
 import { useOfflineSync } from "@/components/offline-sync-provider";
+import { usePushNotifications } from "@/components/push-notification-provider";
 
 // Constant Category Palette for Pie Chart
 const CATEGORY_COLORS: { [key: string]: string } = {
@@ -76,6 +77,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const { isOnline, queueOfflineTransaction } = useOfflineSync();
+  const { permission, isSubscribed, sendLocalNotification } = usePushNotifications();
+  // Track which budget alerts have fired this session to avoid duplicate notifications
+  const firedBudgetAlerts = useRef<Set<string>>(new Set());
 
   // Core App States
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -148,13 +152,42 @@ export default function DashboardPage() {
       // Calculate streak
       calculateStreak(formattedTx);
 
+      // ── Budget 90% Push Alert ──────────────────────────────────────────────
+      // Fire a local SW notification for any budget category at ≥90% utilization
+      if (permission === "granted" && isSubscribed) {
+        const thisMonth = new Date().toISOString().substring(0, 7);
+        formattedBg.forEach((b) => {
+          const spent = formattedTx
+            .filter(
+              (tx) =>
+                tx.type === "expense" &&
+                tx.category === b.category &&
+                tx.date.substring(0, 7) === thisMonth
+            )
+            .reduce((sum, tx) => sum + tx.amount, 0);
+
+          const pct = b.monthly_limit > 0 ? (spent / b.monthly_limit) * 100 : 0;
+          const alertKey = `budget-90-${b.category}-${thisMonth}`;
+
+          if (pct >= 90 && !firedBudgetAlerts.current.has(alertKey)) {
+            firedBudgetAlerts.current.add(alertKey);
+            sendLocalNotification(
+              `⚠️ Budget Alert: ${b.category}`,
+              `You've used ${pct.toFixed(0)}% of your ₹${b.monthly_limit.toFixed(0)} ${b.category} budget this month.`,
+              "/",
+              `xpense-budget-${b.category}`
+            );
+          }
+        });
+      }
+
     } catch (err: any) {
       console.error("Error loading dashboard data:", err);
       setError(err.message || "Failed to retrieve transaction data.");
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, permission, isSubscribed, sendLocalNotification]);
 
   useEffect(() => {
     fetchData();
@@ -826,6 +859,7 @@ export default function DashboardPage() {
           </CardFooter>
         </Card>
       </div>
+
 
       {/* Manual Entry Dialog Modal */}
       <Dialog isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Log Transaction Manual" description="Add income or expense transactions directly without scanning a receipt image.">

@@ -245,6 +245,9 @@ export default function AssistantPage() {
   // Analytics Mounted Guard
   const [mounted, setMounted] = useState(false);
 
+  // Forecast Granularity Toggles
+  const [granularity, setGranularity] = useState<"daily" | "monthly">("monthly");
+
   // Seeding Quick Questions
   const QUICK_QUESTIONS = [
     "What is my highest spending category?",
@@ -443,102 +446,272 @@ export default function AssistantPage() {
   // NOT on every chat input keystroke or message state update
   const activeSubscriptions = useMemo(() => detectSubscriptions(), [transactions]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── 4. Data Science: Linear Regression Expense Predictor ──────────────────
+  // ── 4. Data Science: Prophet-Inspired Additive Seasonality & Robust Regression ──────────────────
   const calculateSpendingForecast = () => {
-    const monthlyExpensesMap: Record<string, number> = {};
+    const expenses = transactions.filter(t => t.type === "expense");
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const today = new Date();
     
-    // Initialise last 6 months keys
+    // Step 1: Continuous daily series mapping for the last 180 days (6 months)
+    const historyDays = 180;
+    const dailyExpenses: Record<string, number> = {};
+    const dates: Date[] = [];
+    
+    for (let i = historyDays - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().substring(0, 10); // "YYYY-MM-DD"
+      dates.push(d);
+      dailyExpenses[dateStr] = 0;
+    }
+    
+    expenses.forEach(t => {
+      const dateStr = t.date.substring(0, 10);
+      if (dailyExpenses[dateStr] !== undefined) {
+        dailyExpenses[dateStr] += t.amount;
+      }
+    });
+
+    // Step 2: Winsorization & Outlier Mitigation (soft log-capping)
+    const nonZeroAmounts = Object.values(dailyExpenses).filter(amt => amt > 0);
+    nonZeroAmounts.sort((a, b) => a - b);
+    
+    let outlierThreshold = 2000; // Base default threshold
+    if (nonZeroAmounts.length > 0) {
+      // 95th percentile threshold
+      const q95Idx = Math.floor(nonZeroAmounts.length * 0.95);
+      outlierThreshold = Math.max(outlierThreshold, nonZeroAmounts[q95Idx]);
+    }
+    
+    let outliersCount = 0;
+    const winsorizedExpenses = dates.map(d => {
+      const dateStr = d.toISOString().substring(0, 10);
+      const originalVal = dailyExpenses[dateStr];
+      if (originalVal > outlierThreshold) {
+        outliersCount++;
+        // Apply log-dampening for outlier resistance
+        const excess = originalVal - outlierThreshold;
+        return outlierThreshold + Math.log(1 + excess / 150) * 150;
+      }
+      return originalVal;
+    });
+
+    // Step 3: Recency-Weighted Linear Trend Fitting
+    let sumW = 0;
+    let sumWt = 0;
+    let sumWy = 0;
+    let sumWtt = 0;
+    let sumWty = 0;
+    
+    const lambda = 0.012; // exponential weight decay factor
+    winsorizedExpenses.forEach((yVal, t) => {
+      const weight = Math.exp(-lambda * (historyDays - 1 - t));
+      sumW += weight;
+      sumWt += weight * t;
+      sumWy += weight * yVal;
+      sumWtt += weight * t * t;
+      sumWty += weight * t * yVal;
+    });
+    
+    const denom = sumW * sumWtt - sumWt * sumWt;
+    const slope = denom !== 0 ? (sumW * sumWty - sumWt * sumWy) / denom : 0;
+    const intercept = (sumWy - slope * sumWt) / sumW;
+
+    // Step 4: Extract Seasonality Components
+    const weeklyResidualsSum = new Array(7).fill(0);
+    const weeklyResidualsCount = new Array(7).fill(0);
+    const monthlyResidualsSum = new Array(32).fill(0); // 1-indexed (1-31)
+    const monthlyResidualsCount = new Array(32).fill(0);
+    
+    dates.forEach((d, index) => {
+      const yVal = winsorizedExpenses[index];
+      const trendVal = slope * index + intercept;
+      const residual = yVal - trendVal;
+      
+      const dayOfWeek = d.getDay();
+      weeklyResidualsSum[dayOfWeek] += residual;
+      weeklyResidualsCount[dayOfWeek]++;
+      
+      const dayOfMonth = d.getDate();
+      monthlyResidualsSum[dayOfMonth] += residual;
+      monthlyResidualsCount[dayOfMonth]++;
+    });
+    
+    // Normalize weekly seasonality (zero-summed)
+    const weeklySeasonality = weeklyResidualsSum.map((sum, idx) => 
+      weeklyResidualsCount[idx] > 0 ? sum / weeklyResidualsCount[idx] : 0
+    );
+    const avgWeekly = weeklySeasonality.reduce((sum, v) => sum + v, 0) / 7;
+    const normalizedWeekly = weeklySeasonality.map(v => v - avgWeekly);
+    
+    // Smooth and normalize monthly seasonality (zero-summed)
+    const rawMonthly = monthlyResidualsSum.map((sum, idx) => 
+      monthlyResidualsCount[idx] > 0 ? sum / monthlyResidualsCount[idx] : 0
+    );
+    const smoothedMonthly = new Array(32).fill(0);
+    for (let i = 1; i <= 31; i++) {
+      const prev = i === 1 ? 31 : i - 1;
+      const next = i === 31 ? 1 : i + 1;
+      smoothedMonthly[i] = 0.25 * rawMonthly[prev] + 0.5 * rawMonthly[i] + 0.25 * rawMonthly[next];
+    }
+    let sumMonthly = 0;
+    for (let i = 1; i <= 31; i++) sumMonthly += smoothedMonthly[i];
+    const avgMonthly = sumMonthly / 31;
+    const normalizedMonthly = smoothedMonthly.map((v, idx) => idx === 0 ? 0 : v - avgMonthly);
+
+    // Step 5: Model Evaluation (R² Confidence Score)
+    let totalResidualSS = 0;
+    let totalTotalSS = 0;
+    const avgActual = winsorizedExpenses.reduce((sum, v) => sum + v, 0) / historyDays;
+    
+    dates.forEach((d, index) => {
+      const yActual = winsorizedExpenses[index];
+      const trendVal = slope * index + intercept;
+      const yFitted = Math.max(0, trendVal + normalizedWeekly[d.getDay()] + normalizedMonthly[d.getDate()]);
+      
+      totalResidualSS += Math.pow(yActual - yFitted, 2);
+      totalTotalSS += Math.pow(yActual - avgActual, 2);
+    });
+    
+    const rSquared = totalTotalSS > 0 ? 1 - (totalResidualSS / totalTotalSS) : 0;
+    
+    let confidenceScore = "Baseline Fit";
+    let confidenceColor = "text-slate-400 border-slate-500/20 bg-slate-500/10";
+    if (rSquared >= 0.40) {
+      confidenceScore = "High Confidence";
+      confidenceColor = "text-violet-400 border-violet-500/20 bg-violet-500/10";
+    } else if (rSquared >= 0.15) {
+      confidenceScore = "Moderate Confidence";
+      confidenceColor = "text-blue-400 border-blue-500/20 bg-blue-500/10";
+    }
+
+    // Step 6: Forecast Next 30 Days daily projections
+    const futureDaysCount = 30;
+    const futureDates: Date[] = [];
+    const dailyForecasts: number[] = [];
+    
+    for (let i = 0; i < futureDaysCount; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() + 1 + i);
+      futureDates.push(d);
+      
+      const tIndex = historyDays + i;
+      const trendVal = slope * tIndex + intercept;
+      const forecast = Math.max(0, trendVal + normalizedWeekly[d.getDay()] + normalizedMonthly[d.getDate()]);
+      dailyForecasts.push(forecast);
+    }
+    
+    const forecastedAmount = dailyForecasts.reduce((sum, v) => sum + v, 0);
+
+    // Step 7: Build Daily Chart Data (Last 14 days actual/fitted vs next 14 days forecasted)
+    const dailyChartData: any[] = [];
+    for (let i = historyDays - 14; i < historyDays; i++) {
+      const d = dates[i];
+      const dateStr = d.toISOString().substring(0, 10);
+      const dateLabel = `${d.getDate()} ${months[d.getMonth()]}`;
+      const trendVal = slope * i + intercept;
+      const fitted = Math.max(0, trendVal + normalizedWeekly[d.getDay()] + normalizedMonthly[d.getDate()]);
+      
+      dailyChartData.push({
+        label: dateLabel,
+        Actual: dailyExpenses[dateStr],
+        Projected: parseFloat(fitted.toFixed(1))
+      });
+    }
+    for (let i = 0; i < 14; i++) {
+      const d = futureDates[i];
+      const dateLabel = `${d.getDate()} ${months[d.getMonth()]}`;
+      dailyChartData.push({
+        label: dateLabel,
+        Actual: null,
+        Projected: parseFloat(dailyForecasts[i].toFixed(1))
+      });
+    }
+
+    // Step 8: Build Monthly Chart Data (Last 6 months actual/fitted vs next month projected)
+    const monthlyChartData: any[] = [];
+    const actualMonthlyMap: Record<string, number> = {};
+    const fittedMonthlyMap: Record<string, number> = {};
     const last6MonthsKeys: string[] = [];
+    
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       last6MonthsKeys.push(key);
-      monthlyExpensesMap[key] = 0;
+      actualMonthlyMap[key] = 0;
+      fittedMonthlyMap[key] = 0;
     }
     
-    // Fill expenses
-    const expenses = transactions.filter(t => t.type === "expense");
-    expenses.forEach(t => {
-      const monthKey = t.date.substring(0, 7); // "YYYY-MM"
-      if (monthlyExpensesMap[monthKey] !== undefined) {
-        monthlyExpensesMap[monthKey] += t.amount;
+    dates.forEach((d, i) => {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (actualMonthlyMap[key] !== undefined) {
+        const dateStr = d.toISOString().substring(0, 10);
+        actualMonthlyMap[key] += dailyExpenses[dateStr];
+        const trendVal = slope * i + intercept;
+        fittedMonthlyMap[key] += Math.max(0, trendVal + normalizedWeekly[d.getDay()] + normalizedMonthly[d.getDate()]);
       }
     });
     
-    const regressionData = last6MonthsKeys.map((key, index) => {
+    last6MonthsKeys.forEach(key => {
       const [year, monthNum] = key.split("-");
-      const monthLabel = months[parseInt(monthNum) - 1];
-      return {
-        index, // independent variable x
-        month: `${monthLabel} ${year.slice(-2)}`,
-        expenses: monthlyExpensesMap[key]
-      };
+      const label = `${months[parseInt(monthNum) - 1]} ${year.slice(-2)}`;
+      monthlyChartData.push({
+        label,
+        Actual: parseFloat(actualMonthlyMap[key].toFixed(1)),
+        Projected: parseFloat(fittedMonthlyMap[key].toFixed(1))
+      });
     });
     
-    // Linear Regression Formula: y = mx + c
-    const N = regressionData.length;
-    let sumX = 0;
-    let sumY = 0;
-    let sumXY = 0;
-    let sumXX = 0;
-    
-    regressionData.forEach(pt => {
-      sumX += pt.index;
-      sumY += pt.expenses;
-      sumXY += pt.index * pt.expenses;
-      sumXX += pt.index * pt.index;
-    });
-    
-    const slopeDenominator = N * sumXX - sumX * sumX;
-    const m = slopeDenominator !== 0 ? (N * sumXY - sumX * sumY) / slopeDenominator : 0;
-    const c = (sumY - m * sumX) / N;
-    
-    // Project next month's spending (index = 6)
-    const rawForecast = m * 6 + c;
-    const forecastedAmount = rawForecast > 0 ? rawForecast : 0;
-    
-    // Find average run rate (average of last 6 months)
-    const total6MonthSpent = regressionData.reduce((sum, pt) => sum + pt.expenses, 0);
-    const averageRunRate = total6MonthSpent / N;
-    
-    // Current Month Spending Track Run-Rate calculation
-    const currentMonthKey = new Date().toISOString().substring(0, 7);
-    const currentMonthSpent = monthlyExpensesMap[currentMonthKey] || 0;
-    const dayOfMonth = new Date().getDate();
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-    const currentMonthProjected = currentMonthSpent * (daysInMonth / dayOfMonth);
-    
-    // Forecast data array for Recharts plotting
-    const chartData = regressionData.map(pt => ({
-      month: pt.month,
-      Actual: pt.expenses,
-      Projected: parseFloat((m * pt.index + c).toFixed(1))
-    }));
-    
-    // Append forecasted month (index = 6)
     const nextMonthDate = new Date();
     nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
-    const forecastMonthLabel = `${months[nextMonthDate.getMonth()]} ${nextMonthDate.getFullYear().toString().slice(-2)}`;
-    
-    chartData.push({
-      month: `${forecastMonthLabel} (AI Forecast)`,
-      Actual: null as any,
+    const nextMonthLabel = `${months[nextMonthDate.getMonth()]} ${nextMonthDate.getFullYear().toString().slice(-2)}`;
+    monthlyChartData.push({
+      label: `${nextMonthLabel} (AI Forecast)`,
+      Actual: null,
       Projected: parseFloat(forecastedAmount.toFixed(1))
     });
+
+    // Step 9: Behavioral and Insights Metrics
+    const totalSpent6M = Object.values(actualMonthlyMap).reduce((sum, v) => sum + v, 0);
+    const averageRunRate = totalSpent6M / last6MonthsKeys.length;
     
+    const currentMonthKey = today.toISOString().substring(0, 7);
+    const currentMonthSpent = actualMonthlyMap[currentMonthKey] || 0;
+    const dayOfMonth = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const currentMonthProjected = currentMonthSpent * (daysInMonth / dayOfMonth);
+
+    const weekdayAvg = (normalizedWeekly[1] + normalizedWeekly[2] + normalizedWeekly[3] + normalizedWeekly[4] + normalizedWeekly[5]) / 5;
+    const weekendAvg = (normalizedWeekly[0] + normalizedWeekly[6]) / 2;
+    const weekendSurge = weekdayAvg > 0 ? ((weekendAvg - weekdayAvg) / weekdayAvg) * 100 : 0;
+
+    let paydaySum = 0;
+    let midMonthSum = 0;
+    for (let i = 1; i <= 31; i++) {
+      if (i <= 5 || i >= 28) paydaySum += normalizedMonthly[i];
+      else if (i >= 10 && i <= 20) midMonthSum += normalizedMonthly[i];
+    }
+    const paydaySpike = paydaySum > midMonthSum;
+
     return {
-      chartData,
+      dailyChartData,
+      monthlyChartData,
       forecastedAmount,
       averageRunRate,
       currentMonthSpent,
       currentMonthProjected,
-      isExceedingRunRate: currentMonthProjected > averageRunRate && averageRunRate > 0
+      isExceedingRunRate: currentMonthProjected > averageRunRate && averageRunRate > 0,
+      rSquared,
+      confidenceScore,
+      confidenceColor,
+      outliersCount,
+      weekendSurge,
+      paydaySpike
     };
   };
 
-  // Memoized: linear regression + chart data only recomputed when transactions changes
+  // Memoized: complete PRSTF model fitting when transactions change
   const forecastStats = useMemo(() => calculateSpendingForecast(), [transactions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -668,16 +841,47 @@ export default function AssistantPage() {
         {/* RIGHT COLUMN: PREDICTIVE CHARTS & RECURRING SUB CALENDAR (lg:col-span-5) */}
         <div className="lg:col-span-5 space-y-6">
           
-          {/* Section 1: Spending Linear Regression Predictive Model */}
+          {/* Section 1: Spending Advanced Seasonality & Predictive Model */}
           <Card className="glass border-white/5 relative overflow-hidden shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-white font-bold flex items-center gap-2">
-                <TrendingUp className="h-4.5 w-4.5 text-violet-400" />
-                AI Spending Projections (Linear Regression)
-              </CardTitle>
-              <CardDescription className="text-slate-400 text-[10px]">
-                Analyzes 6-month historical slope to forecast upcoming month spending
-              </CardDescription>
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start gap-2">
+                <div>
+                  <CardTitle className="text-sm text-white font-bold flex items-center gap-2">
+                    <Brain className="h-4.5 w-4.5 text-violet-400" />
+                    AI Predictive Forecasting Hub
+                  </CardTitle>
+                  <CardDescription className="text-slate-400 text-[10px]">
+                    Prophet-inspired seasonality engine with anomaly mitigation
+                  </CardDescription>
+                </div>
+                <Badge className={`${forecastStats.confidenceColor} border text-[9px] px-2 py-0.5 rounded-full shrink-0`}>
+                  {forecastStats.confidenceScore}
+                </Badge>
+              </div>
+
+              {/* Granularity Selector */}
+              <div className="flex bg-slate-950/60 p-1 rounded-xl border border-white/5 mt-3">
+                <button
+                  onClick={() => setGranularity("monthly")}
+                  className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    granularity === "monthly"
+                      ? "bg-violet-600 text-white shadow-md shadow-violet-950/40"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Monthly View
+                </button>
+                <button
+                  onClick={() => setGranularity("daily")}
+                  className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    granularity === "daily"
+                      ? "bg-violet-600 text-white shadow-md shadow-violet-950/40"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Daily Waves (14d)
+                </button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Forecast Alert Block */}
@@ -705,9 +909,9 @@ export default function AssistantPage() {
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={forecastStats.chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                    <LineChart data={granularity === "monthly" ? forecastStats.monthlyChartData : forecastStats.dailyChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" />
-                      <XAxis dataKey="month" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                      <XAxis dataKey="label" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                       <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                       <Tooltip
                         contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px" }}
@@ -715,8 +919,8 @@ export default function AssistantPage() {
                         labelStyle={{ fontSize: "9px", color: "#94a3b8", fontWeight: "bold" }}
                       />
                       <Legend verticalAlign="top" height={24} iconType="circle" wrapperStyle={{ fontSize: "9px" }} />
-                      <Line type="monotone" dataKey="Actual" stroke="#f87171" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                      <Line type="monotone" dataKey="Projected" stroke="#818cf8" strokeDasharray="3 3" strokeWidth={1.5} dot={{ r: 2 }} />
+                      <Line type="monotone" dataKey="Actual" stroke="#f87171" strokeWidth={2} dot={{ r: granularity === "monthly" ? 3 : 1 }} activeDot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="Projected" stroke="#818cf8" strokeDasharray="3 3" strokeWidth={1.5} dot={{ r: granularity === "monthly" ? 2 : 0 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
@@ -731,6 +935,39 @@ export default function AssistantPage() {
                 <div className="bg-slate-950/20 p-2.5 rounded-lg border border-white/2">
                   <p className="text-[9px] text-slate-500 uppercase font-semibold">Average monthly run-rate</p>
                   <p className="text-base font-extrabold text-slate-300 mt-0.5">₹{forecastStats.averageRunRate.toFixed(0)}</p>
+                </div>
+              </div>
+
+              {/* Advanced Prophet Analytics Insights */}
+              <div className="pt-3 border-t border-white/5 space-y-2">
+                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">AI Behavioral Seasonality Insights</p>
+                <div className="grid grid-cols-2 gap-2 text-left">
+                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 font-semibold">Weekend Surge</span>
+                    <span className="text-xs font-bold text-white mt-1">
+                      {forecastStats.weekendSurge > 5
+                        ? `+${forecastStats.weekendSurge.toFixed(0)}% spending`
+                        : "Flat weekend curve"}
+                    </span>
+                  </div>
+                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 font-semibold">Payday Boundary Effect</span>
+                    <span className="text-xs font-bold text-white mt-1">
+                      {forecastStats.paydaySpike ? "Spikes Detected (1st/30th)" : "Consistent monthly spread"}
+                    </span>
+                  </div>
+                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 font-semibold">Variance Fit ($R^2$)</span>
+                    <span className="text-xs font-bold text-white mt-1">{(forecastStats.rSquared * 100).toFixed(0)}% accuracy</span>
+                  </div>
+                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 font-semibold">Mitigated Outliers</span>
+                    <span className="text-xs font-bold text-white mt-1">
+                      {forecastStats.outliersCount > 0
+                        ? `${forecastStats.outliersCount} anomalies capped`
+                        : "No major spikes"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>

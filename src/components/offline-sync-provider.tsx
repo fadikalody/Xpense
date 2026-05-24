@@ -19,6 +19,14 @@ interface OfflineSyncContextType {
   isOnline: boolean;
   queueLength: number;
   queueOfflineTransaction: (tx: Omit<OfflineTransaction, "created_at">) => void;
+  /** Register a callback to be called after offline sync completes (instead of hard reload) */
+  registerSyncCallback: (fn: (() => void) | null) => void;
+}
+
+interface OfflineSyncProviderProps {
+  children: React.ReactNode;
+  /** Called instead of window.location.reload() after a successful offline sync */
+  onSyncComplete?: () => void;
 }
 
 const OfflineSyncContext = createContext<OfflineSyncContextType | undefined>(undefined);
@@ -31,7 +39,7 @@ export function useOfflineSync() {
   return context;
 }
 
-export function OfflineSyncProvider({ children }: { children: React.ReactNode }) {
+export function OfflineSyncProvider({ children, onSyncComplete }: OfflineSyncProviderProps) {
   const supabase = createClient();
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [queueLength, setQueueLength] = useState<number>(0);
@@ -39,6 +47,12 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const isSyncingRef = useRef(false);
   const [showStatusIndicator, setShowStatusIndicator] = useState<boolean>(false);
   const [indicatorState, setIndicatorState] = useState<"offline" | "online" | "syncing">("online");
+  // Holds a page-level callback registered via registerSyncCallback()
+  const syncCallbackRef = useRef<(() => void) | null>(onSyncComplete ?? null);
+
+  const registerSyncCallback = useCallback((fn: (() => void) | null) => {
+    syncCallbackRef.current = fn;
+  }, []);
 
   // Read queue length on mount
   useEffect(() => {
@@ -99,8 +113,12 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         setShowStatusIndicator(false);
       }, 3000);
 
-      // Reload page state to show newly synced items
-      window.location.reload();
+      // Soft refresh: call registered callback, prop callback, or fall back to full reload
+      if (syncCallbackRef.current) {
+        syncCallbackRef.current();
+      } else {
+        window.location.reload();
+      }
 
     } catch (err) {
       console.error("Failed to sync offline transaction queue to Supabase:", err);
@@ -171,7 +189,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <OfflineSyncContext.Provider value={{ isOnline, queueLength, queueOfflineTransaction }}>
+    <OfflineSyncContext.Provider value={{ isOnline, queueLength, queueOfflineTransaction, registerSyncCallback }}>
       {children}
 
       {/* Elegant sliding status banner */}

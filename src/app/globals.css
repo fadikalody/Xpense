@@ -85,9 +85,28 @@
   --ring: 262.1 83.3% 57.8%;
 }
 
+/* Default border colour for Tailwind border utilities */
 * {
   border-color: var(--color-border);
+}
+
+/* Scope transitions to interactive elements only — avoids forcing transition recalc on every DOM node */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"],
+.glass,
+.transition-colors,
+.transition-all {
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {

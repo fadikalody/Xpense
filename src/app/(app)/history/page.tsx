@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,8 +54,10 @@ export default function HistoryPage() {
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
   const [selectedMerchant, setSelectedMerchant] = useState("");
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  // Inline action error (delete / export) — shown below the search bar
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  // Fetch Transaction History
+  // Fetch all transactions once — sorting is handled client-side to avoid redundant network calls
   const fetchTransactions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -67,7 +69,7 @@ export default function HistoryPage() {
         .from("transactions")
         .select("*")
         .eq("user_id", user.id)
-        .order("date", { ascending: sortOrder === "asc" });
+        .order("date", { ascending: false }); // always fetch desc; client sorts on toggle
 
       if (txErr) throw txErr;
 
@@ -88,7 +90,7 @@ export default function HistoryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, sortOrder]);
+  }, [supabase]); // sortOrder removed — no longer a dependency
 
   useEffect(() => {
     fetchTransactions();
@@ -106,35 +108,44 @@ export default function HistoryPage() {
 
       if (deleteErr) throw deleteErr;
 
-      // Update state locally
-      setTransactions(transactions.filter((tx) => tx.id !== id));
+      // Update state locally — no re-fetch needed
+      setTransactions((prev) => prev.filter((tx) => tx.id !== id));
     } catch (err: any) {
       console.error(err);
-      alert(`Delete failed: ${err.message}`);
+      setActionError("Failed to delete transaction. Please try again.");
     }
   };
 
-  // Filter Logic on Client Side for hyper-responsiveness
-  const filteredTransactions = transactions.filter((tx) => {
-    const matchesSearch = tx.merchant_name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+  // Memoized filter + sort — recomputes only when relevant state changes, not on every render
+  const filteredTransactions = useMemo(() => {
+    const filtered = transactions.filter((tx) => {
+      const matchesSearch = tx.merchant_name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    const matchesCategory = categoryFilter === "All" || tx.category === categoryFilter;
+      const matchesCategory = categoryFilter === "All" || tx.category === categoryFilter;
 
-    let matchesDate = true;
-    const txTime = new Date(tx.date).getTime();
-    if (startDate) {
-      const start = new Date(startDate).getTime();
-      matchesDate = matchesDate && txTime >= start;
-    }
-    if (endDate) {
-      const end = new Date(endDate).getTime() + 86400000; // include full day
-      matchesDate = matchesDate && txTime <= end;
-    }
+      let matchesDate = true;
+      const txTime = new Date(tx.date).getTime();
+      if (startDate) {
+        const start = new Date(startDate).getTime();
+        matchesDate = matchesDate && txTime >= start;
+      }
+      if (endDate) {
+        const end = new Date(endDate).getTime() + 86400000; // include full day
+        matchesDate = matchesDate && txTime <= end;
+      }
 
-    return matchesSearch && matchesCategory && matchesDate;
-  });
+      return matchesSearch && matchesCategory && matchesDate;
+    });
+
+    // Client-side sort — instant, no network round-trip
+    return filtered.sort((a, b) => {
+      const tA = new Date(a.date).getTime();
+      const tB = new Date(b.date).getTime();
+      return sortOrder === "desc" ? tB - tA : tA - tB;
+    });
+  }, [transactions, searchQuery, categoryFilter, startDate, endDate, sortOrder]);
 
   // Toggle sort order
   const toggleSort = () => {
@@ -151,9 +162,10 @@ export default function HistoryPage() {
   // Bulletproof CSV Export using Blobs
   const handleExportCSV = () => {
     if (filteredTransactions.length === 0) {
-      alert("No transaction records available to export.");
+      setActionError("No transaction records available to export. Apply different filters or add transactions first.");
       return;
     }
+    setActionError(null);
 
     const headers = ["ID", "Transaction Type", "Merchant/Source", "Category", "Amount (₹)", "Logged Date", "Receipt Public Link"];
 
@@ -211,6 +223,14 @@ export default function HistoryPage() {
           <span>{error}</span>
         </Badge>
       )}
+
+      {actionError && (
+        <Badge variant="destructive" className="w-full py-2.5 px-3 rounded-lg flex items-center justify-start gap-2 border-amber-500/20 bg-amber-950/40 text-xs cursor-pointer" onClick={() => setActionError(null)}>
+          <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
+          <span className="text-amber-200">{actionError}</span>
+        </Badge>
+      )}
+
 
       {/* Filter Card */}
       <Card className="glass border-white/5 shadow-xl">

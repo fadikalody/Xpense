@@ -67,7 +67,7 @@ export default function BudgetsPage() {
   const currentMonthYear = new Date().toISOString().substring(0, 7); // "YYYY-MM"
   const currentMonthName = new Date().toLocaleString("default", { month: "long", year: "numeric" });
 
-  // Fetch Data
+  // Fetch Data — parallel fetch for transactions + budgets
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -75,37 +75,25 @@ export default function BudgetsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Fetch transactions
-      const { data: txData, error: txError } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("date", { ascending: false });
+      const [
+        { data: txData, error: txError },
+        { data: bgData, error: bgError },
+      ] = await Promise.all([
+        supabase.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: false }),
+        supabase.from("budgets").select("*").eq("user_id", user.id),
+      ]);
 
       if (txError) throw txError;
-
-      // 2. Fetch budgets
-      const { data: bgData, error: bgError } = await supabase
-        .from("budgets")
-        .select("*")
-        .eq("user_id", user.id);
-
       if (bgError) throw bgError;
 
       const formattedTx: Transaction[] = (txData || []).map((t: any) => ({
-        id: t.id,
-        type: t.type,
-        amount: parseFloat(t.amount.toString()),
-        merchant_name: t.merchant_name,
-        category: t.category,
-        date: t.date,
+        id: t.id, type: t.type, amount: parseFloat(t.amount.toString()),
+        merchant_name: t.merchant_name, category: t.category, date: t.date,
       }));
 
       const formattedBg: Budget[] = (bgData || []).map((b: any) => ({
-        id: b.id,
-        category: b.category,
-        monthly_limit: parseFloat(b.monthly_limit.toString()),
-        month_year: b.month_year,
+        id: b.id, category: b.category,
+        monthly_limit: parseFloat(b.monthly_limit.toString()), month_year: b.month_year,
       }));
 
       setTransactions(formattedTx);
@@ -113,7 +101,7 @@ export default function BudgetsPage() {
 
     } catch (err: any) {
       console.error("Error loading budgets data:", err);
-      setError(err.message || "Failed to retrieve budgets or expenditures data.");
+      setError("Failed to load budget data. Please refresh.");
     } finally {
       setIsLoading(false);
     }
@@ -175,16 +163,14 @@ export default function BudgetsPage() {
 
     } catch (err: any) {
       console.error(err);
-      alert(`Error setting budget: ${err.message}`);
+      setError("Failed to save budget. Please try again.");
     } finally {
       setIsSavingBudget(false);
     }
   };
 
-  // Handle deleting a budget limit
+  // Handle deleting a budget limit — no confirm() dialog (blocks thread)
   const handleDeleteBudget = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category budget limit?")) return;
-
     try {
       const { error: deleteErr } = await supabase
         .from("budgets")
@@ -193,9 +179,9 @@ export default function BudgetsPage() {
 
       if (deleteErr) throw deleteErr;
 
-      // Update state locally
-      setBudgets(budgets.filter((b) => b.id !== id));
-      
+      // Update state locally — no re-fetch needed
+      setBudgets((prev) => prev.filter((b) => b.id !== id));
+
       confetti({
         particleCount: 15,
         spread: 20,
@@ -203,7 +189,7 @@ export default function BudgetsPage() {
       });
     } catch (err: any) {
       console.error(err);
-      alert(`Delete budget failed: ${err.message}`);
+      setError("Failed to delete budget. Please try again.");
     }
   };
 

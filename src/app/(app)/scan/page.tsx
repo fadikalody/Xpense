@@ -107,7 +107,16 @@ export default function ScanPage() {
       }
 
       // 2. Upload file to Supabase Storage bucket 'receipts'
-      const fileExt = file.name.split(".").pop() || "jpg";
+      // Derive extension from MIME type — safer than splitting filename
+      const MIME_TO_EXT: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/gif": "gif",
+        "image/heic": "heic",
+        "image/heif": "heif",
+      };
+      const fileExt = MIME_TO_EXT[file.type] || "jpg";
       const filePath = `${user.id}/${Date.now()}_receipt.${fileExt}`;
       
       setScanProgress(25);
@@ -136,10 +145,14 @@ export default function ScanPage() {
       setScanProgress(60);
       setScanStatusText("Running AI receipt processor (Gemini)...");
 
-      // 4. Send image URL to Gemini API Route
+      // 4. Send image URL to Gemini API Route — with auth token so the route can verify caller
+      const { data: { session } } = await supabase.auth.getSession();
       const apiResponse = await fetch("/api/process-receipt", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ imageUrl: publicUrl }),
       });
 
@@ -218,15 +231,19 @@ export default function ScanPage() {
         .eq("month_year", `${transactionMonth}-01`)
         .single();
 
-      // Fetch existing spending in this category for this month
+      // Fetch existing spending in this category for this month (correct month-end boundary)
+      const monthStart = `${transactionMonth}-01`;
+      const lastDay = new Date(parseInt(transactionMonth.split("-")[0]), parseInt(transactionMonth.split("-")[1]), 0).getDate();
+      const monthEnd = `${transactionMonth}-${String(lastDay).padStart(2, "0")}`;
+
       const { data: transactionsData } = await supabase
         .from("transactions")
         .select("amount")
         .eq("user_id", user.id)
         .eq("type", "expense")
         .eq("category", category)
-        .gte("date", `${transactionMonth}-01`)
-        .lte("date", `${transactionMonth}-31`); // simplistically boundary check
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
 
       const currentSpend = (transactionsData || []).reduce((sum: number, tx: any) => sum + parseFloat(tx.amount.toString()), 0);
 

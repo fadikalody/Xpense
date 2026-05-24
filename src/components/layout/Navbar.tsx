@@ -26,6 +26,7 @@ import {
   Shield,
   Pencil,
   Check,
+  Bot,
 } from "lucide-react";
 
 export function Navbar() {
@@ -164,6 +165,7 @@ export function Navbar() {
     { href: "/scan", label: "AI Scanner", icon: Sparkles },
     { href: "/history", label: "History", icon: History },
     { href: "/budgets", label: "Budgets", icon: Wallet },
+    { href: "/assistant", label: "AI Assistant", icon: Bot, badge: "New" },
   ];
 
   return (

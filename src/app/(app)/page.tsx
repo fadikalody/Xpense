@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ interface Budget {
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
-  const { isOnline, queueOfflineTransaction } = useOfflineSync();
+  const { isOnline, queueOfflineTransaction, registerSyncCallback } = useOfflineSync();
   const { permission, isSubscribed, sendLocalNotification } = usePushNotifications();
   // Track which budget alerts have fired this session to avoid duplicate notifications
   const firedBudgetAlerts = useRef<Set<string>>(new Set());
@@ -88,12 +88,9 @@ export default function DashboardPage() {
   const [budgetLimit, setBudgetLimit] = useState("");
   const [isSavingBudget, setIsSavingBudget] = useState(false);
 
-  // Streak calculation logic: consecutive calendar days with at least one transaction
-  const calculateStreak = (txList: Transaction[]) => {
-    if (txList.length === 0) {
-      setStreak(0);
-      return;
-    }
+  // Pure streak calculator — returns value instead of calling setState directly
+  const calculateStreak = useCallback((txList: Transaction[]): number => {
+    if (txList.length === 0) return 0;
 
     const uniqueDates = new Set(
       txList
@@ -101,21 +98,17 @@ export default function DashboardPage() {
         .map((tx) => tx.date.split("T")[0])
     );
 
-    if (uniqueDates.size === 0) {
-      setStreak(0);
-      return;
-    }
+    if (uniqueDates.size === 0) return 0;
 
     let currentStreak = 0;
-    const checkDate = new Date(); // Start from today
+    const checkDate = new Date();
 
     while (true) {
       const dateString = checkDate.toISOString().split("T")[0];
       if (uniqueDates.has(dateString)) {
         currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1); // Check previous day
+        checkDate.setDate(checkDate.getDate() - 1);
       } else {
-        // If today has no expense, check if yesterday had one to maintain streak
         if (currentStreak === 0) {
           checkDate.setDate(checkDate.getDate() - 1);
           const yesterdayString = checkDate.toISOString().split("T")[0];
@@ -129,10 +122,10 @@ export default function DashboardPage() {
       }
     }
 
-    setStreak(currentStreak);
-  };
+    return currentStreak;
+  }, []);
 
-  // Fetch Data from Supabase
+  // Fetch Data from Supabase — parallel fetch for transactions + budgets
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -140,21 +133,23 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Fetch transactions
-      const { data: txData, error: txError } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("date", { ascending: false });
+      // Fetch transactions and budgets in parallel — halves network latency
+      const [
+        { data: txData, error: txError },
+        { data: bgData, error: bgError },
+      ] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("date", { ascending: false }),
+        supabase
+          .from("budgets")
+          .select("*")
+          .eq("user_id", user.id),
+      ]);
 
       if (txError) throw txError;
-
-      // 2. Fetch budgets
-      const { data: bgData, error: bgError } = await supabase
-        .from("budgets")
-        .select("*")
-        .eq("user_id", user.id);
-
       if (bgError) throw bgError;
 
       const formattedTx: Transaction[] = (txData || []).map((t: any) => ({
@@ -175,9 +170,7 @@ export default function DashboardPage() {
 
       setTransactions(formattedTx);
       setBudgets(formattedBg);
-
-      // Calculate streak
-      calculateStreak(formattedTx);
+      setStreak(calculateStreak(formattedTx));
 
     } catch (err: any) {
       console.error("Error loading dashboard data:", err);
@@ -185,11 +178,17 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, calculateStreak]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Register fetchData as the soft sync callback so offline sync doesn't need a hard page reload
+  useEffect(() => {
+    registerSyncCallback(fetchData);
+    return () => registerSyncCallback(null); // deregister on unmount
+  }, [fetchData, registerSyncCallback]);
 
   // ── Decoupled Budget 90% Push Alert ─────────────────────────────────────────
   useEffect(() => {
@@ -221,44 +220,55 @@ export default function DashboardPage() {
     });
   }, [permission, isSubscribed, budgets, transactions, sendLocalNotification]);
 
-  // 1. Calculate Stats
-  const totalIncome = transactions
-    .filter((tx) => tx.type === "income")
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  // 1. Current month string — stable reference
+  const currentMonthYear = useMemo(() => new Date().toISOString().substring(0, 7), []);
 
-  const totalExpense = transactions
-    .filter((tx) => tx.type === "expense")
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  // 2. Memoized stats — only recompute when transactions changes
+  const totalIncome = useMemo(
+    () => transactions.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
 
-  const balance = totalIncome - totalExpense;
+  const totalExpense = useMemo(
+    () => transactions.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
 
-  // 2. Budget tracking helper
-  const currentMonthYear = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+  const balance = useMemo(() => totalIncome - totalExpense, [totalIncome, totalExpense]);
 
-  const getCategorySpendThisMonth = (category: string) => {
-    return transactions
-      .filter((tx) =>
-        tx.type === "expense" &&
-        tx.category === category &&
-        tx.date.substring(0, 7) === currentMonthYear
-      )
-      .reduce((sum, tx) => sum + tx.amount, 0);
-  };
+  // 3. Memoized budget helper
+  const getCategorySpendThisMonth = useCallback(
+    (category: string) =>
+      transactions
+        .filter(
+          (tx) =>
+            tx.type === "expense" &&
+            tx.category === category &&
+            tx.date.substring(0, 7) === currentMonthYear
+        )
+        .reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions, currentMonthYear]
+  );
 
-  // 3. Category distribution for Recharts Pie Chart
-  const pieChartData = Object.keys(CATEGORY_COLORS).map((cat) => {
-    const value = transactions
-      .filter((tx) => tx.type === "expense" && tx.category === cat)
-      .reduce((sum, tx) => sum + tx.amount, 0);
-    return { name: cat, value };
-  }).filter((item) => item.value > 0);
+  // 4. Memoized pie chart data
+  const pieChartData = useMemo(
+    () =>
+      Object.keys(CATEGORY_COLORS)
+        .map((cat) => ({
+          name: cat,
+          value: transactions
+            .filter((tx) => tx.type === "expense" && tx.category === cat)
+            .reduce((sum, tx) => sum + tx.amount, 0),
+        }))
+        .filter((item) => item.value > 0),
+    [transactions]
+  );
 
-  // 4. Monthly Bar Chart Trend (Last 6 Months)
-  const getMonthlyTrendData = () => {
+  // 5. Memoized bar chart data (last 6 months)
+  const barChartData = useMemo(() => {
     const monthlyMap: { [key: string]: { income: number; expense: number } } = {};
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    // Initialize last 6 months
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
@@ -266,56 +276,37 @@ export default function DashboardPage() {
       monthlyMap[key] = { income: 0, expense: 0 };
     }
 
-    // Populate
     transactions.forEach((tx) => {
-      const txMonth = tx.date.substring(0, 7); // "YYYY-MM"
+      const txMonth = tx.date.substring(0, 7);
       if (monthlyMap[txMonth]) {
-        if (tx.type === "income") {
-          monthlyMap[txMonth].income += tx.amount;
-        } else {
-          monthlyMap[txMonth].expense += tx.amount;
-        }
+        if (tx.type === "income") monthlyMap[txMonth].income += tx.amount;
+        else monthlyMap[txMonth].expense += tx.amount;
       }
     });
 
     return Object.entries(monthlyMap).map(([key, value]) => {
       const [year, monthNum] = key.split("-");
-      const monthLabel = months[parseInt(monthNum) - 1];
       return {
-        month: `${monthLabel} ${year.slice(-2)}`,
+        month: `${months[parseInt(monthNum) - 1]} ${year.slice(-2)}`,
         Income: value.income,
         Expense: value.expense,
       };
     });
-  };
+  }, [transactions]);
 
-  const barChartData = getMonthlyTrendData();
-
-  // 5. Smart Financial Insights
-  const getInsights = () => {
+  // 6. Memoized insights — depends on transactions, budgets, and derived pie data
+  const insightsList = useMemo(() => {
     const insights: string[] = [];
-
-    // Week-over-week Food expense check
     const today = new Date();
     const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     const twoWeeksAgo = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
 
     const foodThisWeek = transactions
-      .filter((tx) =>
-        tx.type === "expense" &&
-        tx.category === "Food" &&
-        new Date(tx.date) >= oneWeekAgo &&
-        new Date(tx.date) <= today
-      )
+      .filter((tx) => tx.type === "expense" && tx.category === "Food" && new Date(tx.date) >= oneWeekAgo && new Date(tx.date) <= today)
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const foodLastWeek = transactions
-      .filter((tx) =>
-        tx.type === "expense" &&
-        tx.category === "Food" &&
-        new Date(tx.date) >= twoWeeksAgo &&
-        new Date(tx.date) < oneWeekAgo
-      )
+      .filter((tx) => tx.type === "expense" && tx.category === "Food" && new Date(tx.date) >= twoWeeksAgo && new Date(tx.date) < oneWeekAgo)
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     if (foodThisWeek > 0 && foodLastWeek > 0) {
@@ -327,13 +318,11 @@ export default function DashboardPage() {
       }
     }
 
-    // Top spending category overall
     if (pieChartData.length > 0) {
       const topCat = [...pieChartData].sort((a, b) => b.value - a.value)[0];
       insights.push(`Your highest spending category is ${topCat.name} at ₹${topCat.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}.`);
     }
 
-    // Budget warnings
     budgets.forEach((b) => {
       const spend = getCategorySpendThisMonth(b.category);
       if (spend > b.monthly_limit) {
@@ -348,9 +337,7 @@ export default function DashboardPage() {
     }
 
     return insights;
-  };
-
-  const insightsList = getInsights();
+  }, [transactions, budgets, pieChartData, getCategorySpendThisMonth]);
 
   // Handle manual transaction submission
   const handleSaveManualTx = async (e: React.FormEvent) => {
@@ -447,7 +434,7 @@ export default function DashboardPage() {
 
     } catch (err: any) {
       console.error(err);
-      alert(`Error saving transaction: ${err.message}`);
+      setError("Failed to save transaction. Please try again.");
     } finally {
       setIsSavingTx(false);
     }
@@ -495,7 +482,7 @@ export default function DashboardPage() {
 
     } catch (err: any) {
       console.error(err);
-      alert(`Error setting budget: ${err.message}`);
+      setError("Failed to save budget. Please try again.");
     } finally {
       setIsSavingBudget(false);
     }

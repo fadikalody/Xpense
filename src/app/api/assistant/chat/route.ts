@@ -158,7 +158,7 @@ Today is ${currentDateString} (UTC)
   } catch (err: any) {
     console.error("API error in assistant chat:", err);
     return NextResponse.json(
-      { error: `Internal Server Error: ${err.message}` },
+      { error: "An unexpected error occurred. Please try again later." },
       { status: 500 }
     );
   }

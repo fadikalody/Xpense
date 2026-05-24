@@ -117,7 +117,7 @@ export default function ScanPage() {
         "image/heif": "heif",
       };
       const fileExt = MIME_TO_EXT[file.type] || "jpg";
-      const filePath = `${user.id}/${Date.now()}_receipt.${fileExt}`;
+      const filePath = `${user.id}/${Date.now()}_${crypto.randomUUID()}_receipt.${fileExt}`;
       
       setScanProgress(25);
 

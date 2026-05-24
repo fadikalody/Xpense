@@ -100,7 +100,7 @@ CREATE POLICY "Anyone can view receipts"
 
 CREATE POLICY "Authenticated users can upload receipts"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'receipts' AND auth.role() = 'authenticated');
+  WITH CHECK (bucket_id = 'receipts' AND auth.role() = 'authenticated' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 CREATE POLICY "Users can delete their own receipt uploads"
   ON storage.objects FOR DELETE

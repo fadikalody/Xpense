@@ -47,7 +47,18 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 3. SSRF protection: only allow Supabase storage receipt URLs ─────────
-    if (!imageUrl.startsWith(ALLOWED_IMAGE_PREFIX)) {
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(imageUrl);
+    } catch {
+      return NextResponse.json({ error: "Invalid image URL format." }, { status: 400 });
+    }
+    
+    const allowedPrefixUrl = new URL(ALLOWED_IMAGE_PREFIX);
+    if (
+      parsedUrl.origin !== allowedPrefixUrl.origin ||
+      !parsedUrl.pathname.startsWith(allowedPrefixUrl.pathname)
+    ) {
       return NextResponse.json(
         { error: "Invalid image URL. Only receipt storage URLs are accepted." },
         { status: 400 }

@@ -203,7 +203,7 @@ export default function BudgetsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
+        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
           Category Budgets <Wallet className="h-6 w-6 text-violet-400" />
         </h1>
         <p className="text-slate-400 text-sm">
@@ -228,7 +228,7 @@ export default function BudgetsPage() {
               <div className="absolute inset-0 bg-radial-gradient from-violet-500/5 via-transparent to-transparent pointer-events-none" />
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
+                  <CardTitle className="text-lg text-slate-900 dark:text-white font-bold flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-violet-400 animate-pulse" />
                     Overall Monthly Budget
                   </CardTitle>
@@ -244,13 +244,13 @@ export default function BudgetsPage() {
                 <div className="flex justify-between items-end">
                   <div className="space-y-1">
                     <span className="text-xs text-slate-400 font-semibold block">Total Spent (on budgeted areas)</span>
-                    <span className={`text-3xl font-extrabold ${isTotalOver ? "text-red-400" : "text-violet-300"}`}>
+                    <span className={`text-3xl font-extrabold ${isTotalOver ? "text-red-600 dark:text-red-400" : "text-violet-700 dark:text-violet-300"}`}>
                       ₹{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="text-right space-y-1">
                     <span className="text-xs text-slate-500 font-medium block">Total Monthly Limit</span>
-                    <span className="text-lg font-bold text-slate-300">
+                    <span className="text-lg font-bold text-slate-700 dark:text-slate-300">
                       ₹{totalLimit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -314,7 +314,7 @@ export default function BudgetsPage() {
                       />
                       
                       <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between space-y-0">
-                        <CardTitle className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <CardTitle className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           <span 
                             className="w-2.5 h-2.5 rounded-full shrink-0" 
                             style={{ backgroundColor: CATEGORY_COLORS[b.category] || "#fff" }}
@@ -335,10 +335,10 @@ export default function BudgetsPage() {
 
                       <CardContent className="space-y-3">
                         <div className="flex justify-between items-baseline text-xs">
-                          <span className={isOverBudget ? "text-red-400 font-extrabold" : "text-slate-400"}>
+                          <span className={isOverBudget ? "text-red-600 dark:text-red-400 font-extrabold" : "text-slate-500 dark:text-slate-400"}>
                             ₹{spent.toFixed(0)} <span className="text-slate-500 font-normal">spent</span>
                           </span>
-                          <span className="text-slate-300 font-bold">
+                          <span className="text-slate-700 dark:text-slate-300 font-bold">
                             ₹{limit.toFixed(0)} <span className="text-slate-500 font-normal text-[10px]">limit</span>
                           </span>
                         </div>
@@ -385,7 +385,7 @@ export default function BudgetsPage() {
         {/* Right Section: Manage Budgets Form (Col span 4) */}
         <Card className="glass border-white/5 lg:col-span-4 shadow-xl relative overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
+            <CardTitle className="text-lg text-slate-900 dark:text-white font-bold flex items-center gap-2">
               <Wallet className="h-5 w-5 text-violet-400" />
               Manage Limits
             </CardTitle>

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -171,9 +173,6 @@ body {
 
 /* --- Light Mode Adaptive Overrides --- */
 /* These overrides instantly translate hardcoded dark mode utility classes to beautiful light mode equivalents */
-.light .text-white {
-  color: hsl(var(--foreground)) !important;
-}
 .light .border-white\/5,
 .light .border-white\/10,
 .light .border-white\/2,
@@ -195,9 +194,6 @@ body {
 .light .text-slate-300,
 .light .text-slate-500 {
   color: rgba(51, 65, 85, 0.8) !important;
-}
-.light .text-slate-100 {
-  color: hsl(var(--foreground)) !important;
 }
 .light .placeholder\:text-slate-600::placeholder,
 .light .placeholder\:text-slate-500::placeholder {

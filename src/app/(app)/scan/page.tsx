@@ -314,10 +314,10 @@ export default function ScanPage() {
           </Button>
         )}
         <div>
-          <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
             AI Receipt Scanner <Sparkles className="h-6 w-6 text-violet-400 animate-pulse" />
           </h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             Scan your physical receipts and let AI extract details instantly
           </p>
         </div>
@@ -340,8 +340,8 @@ export default function ScanPage() {
             </div>
 
             <div className="space-y-2 max-w-sm">
-              <h3 className="text-lg font-bold text-white">Capture or Upload Receipt</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Capture or Upload Receipt</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Take a quick photo using your mobile camera or upload an existing receipt image. We accept JPG, PNG up to 8MB.
               </p>
             </div>
@@ -370,7 +370,7 @@ export default function ScanPage() {
                 variant="outline"
                 size="lg"
                 onClick={triggerFileSelect}
-                className="border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                className="border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-955 dark:hover:text-white cursor-pointer"
               >
                 <UploadCloud className="mr-2 h-5 w-5" />
                 Upload from Gallery
@@ -418,7 +418,7 @@ export default function ScanPage() {
           {/* Left panel: Receipt preview */}
           <Card className="glass border-white/10 md:col-span-4 overflow-hidden h-full flex flex-col justify-between">
             <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-300">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300">
                 <FileText className="h-4 w-4" />
                 Scanned Receipt Document
               </CardTitle>
@@ -436,7 +436,7 @@ export default function ScanPage() {
               )}
             </CardContent>
             <CardFooter className="p-4 bg-slate-900/30 flex justify-center border-t border-border/20">
-              <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-white cursor-pointer" onClick={handleReset}>
+              <Button variant="ghost" size="sm" className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer" onClick={handleReset}>
                 <RefreshCw className="mr-2 h-3.5 w-3.5" />
                 Rescan Receipt
               </Button>
@@ -446,13 +446,13 @@ export default function ScanPage() {
           {/* Right panel: Pre-filled interactive Form */}
           <Card className="glass border-white/10 md:col-span-8 shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-lg text-white font-bold flex items-center justify-between">
+              <CardTitle className="text-lg text-slate-900 dark:text-white font-bold flex items-center justify-between">
                 <span>Confirm Receipt Details</span>
                 <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                   AI Extracted
                 </Badge>
               </CardTitle>
-              <CardDescription className="text-slate-400 text-xs">
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">
                 We have parsed the receipt contents. Verify the details below and correct any inaccuracies before saving.
               </CardDescription>
             </CardHeader>
@@ -469,19 +469,19 @@ export default function ScanPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Merchant Name */}
                   <div className="space-y-1">
-                    <Label htmlFor="merchant" className="text-slate-300">Merchant Name</Label>
+                    <Label htmlFor="merchant" className="text-slate-700 dark:text-slate-300">Merchant Name</Label>
                     <Input
                       id="merchant"
                       value={merchantName}
                       onChange={(e) => setMerchantName(e.target.value)}
-                      className="bg-slate-900/60 border-slate-800 text-white placeholder:text-slate-500"
+                      className="bg-slate-100/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       required
                     />
                   </div>
 
                   {/* Total Amount */}
                   <div className="space-y-1">
-                    <Label htmlFor="amount" className="text-slate-300">Total Amount</Label>
+                    <Label htmlFor="amount" className="text-slate-700 dark:text-slate-300">Total Amount</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-slate-500 text-sm font-semibold">₹</span>
                       <Input
@@ -491,7 +491,7 @@ export default function ScanPage() {
                         placeholder="0.00"
                         value={totalAmount}
                         onChange={(e) => setTotalAmount(e.target.value)}
-                        className="pl-7 bg-slate-900/60 border-slate-800 text-white placeholder:text-slate-500"
+                        className="pl-7 bg-slate-100/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         required
                       />
                     </div>
@@ -501,25 +501,25 @@ export default function ScanPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Transaction Date */}
                   <div className="space-y-1">
-                    <Label htmlFor="date" className="text-slate-300">Transaction Date</Label>
+                    <Label htmlFor="date" className="text-slate-700 dark:text-slate-300">Transaction Date</Label>
                     <Input
                       id="date"
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="bg-slate-900/60 border-slate-800 text-white"
+                      className="bg-slate-100/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
                       required
                     />
                   </div>
 
                   {/* Category Select */}
                   <div className="space-y-1">
-                    <Label htmlFor="category" className="text-slate-300">Category</Label>
+                    <Label htmlFor="category" className="text-slate-700 dark:text-slate-300">Category</Label>
                     <Select
                       id="category"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="bg-slate-900/60 border-slate-800 text-white"
+                      className="bg-slate-100/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
                     >
                       <option value="Food">Food</option>
                       <option value="Transport">Transport</option>
@@ -557,7 +557,7 @@ export default function ScanPage() {
                   type="button"
                   variant="outline"
                   onClick={handleReset}
-                  className="w-full sm:w-auto border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                  className="w-full sm:w-auto border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-955 dark:hover:text-white cursor-pointer"
                   disabled={isSaving}
                 >
                   Cancel

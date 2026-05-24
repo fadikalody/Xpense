@@ -576,13 +576,13 @@ export default function AssistantPage() {
     const rSquared = totalTotalSS > 0 ? 1 - (totalResidualSS / totalTotalSS) : 0;
     
     let confidenceScore = "Baseline Fit";
-    let confidenceColor = "text-slate-400 border-slate-500/20 bg-slate-500/10";
+    let confidenceColor = "text-slate-600 dark:text-slate-400 border-slate-500/20 bg-slate-500/10";
     if (rSquared >= 0.40) {
       confidenceScore = "High Confidence";
-      confidenceColor = "text-violet-400 border-violet-500/20 bg-violet-500/10";
+      confidenceColor = "text-violet-600 dark:text-violet-400 border-violet-500/20 bg-violet-500/10";
     } else if (rSquared >= 0.15) {
       confidenceScore = "Moderate Confidence";
-      confidenceColor = "text-blue-400 border-blue-500/20 bg-blue-500/10";
+      confidenceColor = "text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/10";
     }
 
     // Step 6: Forecast Next 30 Days daily projections
@@ -719,14 +719,14 @@ export default function AssistantPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
             AI Assistant & Predictive Hub <Brain className="h-6 w-6 text-violet-400" />
           </h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             Interactive RAG chat, regression spending forecasts, and recurring payments calendar
           </p>
         </div>
-        <Button variant="outline" size="sm" className="border-slate-800 text-slate-300 hover:text-white" onClick={fetchTransactions} disabled={isLoadingData}>
+        <Button variant="outline" size="sm" className="border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white" onClick={fetchTransactions} disabled={isLoadingData}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingData ? "animate-spin" : ""}`} />
           Sync Ledger
         </Button>
@@ -745,7 +745,7 @@ export default function AssistantPage() {
               <Bot className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-base text-white font-bold flex items-center gap-1.5">
+              <CardTitle className="text-base text-slate-900 dark:text-white font-bold flex items-center gap-1.5">
                 Financial Chat Assistant
                 <Badge className="bg-violet-500/20 text-violet-300 text-[9px] border-violet-500/30">Active RAG</Badge>
               </CardTitle>
@@ -827,7 +827,7 @@ export default function AssistantPage() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask about Starbucks spending, budget totals, laptop invoices..."
-                className="bg-slate-950/50 border-white/5 text-white placeholder:text-slate-600 text-xs h-10 rounded-xl"
+                className="bg-slate-100/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-xs h-10 rounded-xl"
                 disabled={isSending}
                 required
               />
@@ -846,7 +846,7 @@ export default function AssistantPage() {
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start gap-2">
                 <div>
-                  <CardTitle className="text-sm text-white font-bold flex items-center gap-2">
+                  <CardTitle className="text-sm text-slate-900 dark:text-white font-bold flex items-center gap-2">
                     <Brain className="h-4.5 w-4.5 text-violet-400" />
                     AI Predictive Forecasting Hub
                   </CardTitle>
@@ -860,13 +860,13 @@ export default function AssistantPage() {
               </div>
 
               {/* Granularity Selector */}
-              <div className="flex bg-slate-950/60 p-1 rounded-xl border border-white/5 mt-3">
+              <div className="flex bg-slate-100/80 dark:bg-slate-950/60 p-1 rounded-xl border border-slate-200 dark:border-white/5 mt-3">
                 <button
                   onClick={() => setGranularity("monthly")}
                   className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                     granularity === "monthly"
                       ? "bg-violet-600 text-white shadow-md shadow-violet-950/40"
-                      : "text-slate-400 hover:text-slate-200"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                 >
                   Monthly View
@@ -876,7 +876,7 @@ export default function AssistantPage() {
                   className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                     granularity === "daily"
                       ? "bg-violet-600 text-white shadow-md shadow-violet-950/40"
-                      : "text-slate-400 hover:text-slate-200"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                 >
                   Daily Waves (14d)
@@ -886,10 +886,10 @@ export default function AssistantPage() {
             <CardContent className="space-y-4">
               {/* Forecast Alert Block */}
               {forecastStats.isExceedingRunRate ? (
-                <div className="flex gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
-                  <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="text-amber-200 leading-normal">
-                    <span className="font-bold">Run-Rate Alert!</span> Based on your current calendar progress, you are on track to spend <span className="font-extrabold text-amber-300">₹{forecastStats.currentMonthProjected.toFixed(0)}</span> this month, exceeding your historical average monthly spending of <span className="font-bold">₹{forecastStats.averageRunRate.toFixed(0)}</span>. Consider tightening expenses!
+                <div className="flex gap-2.5 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs">
+                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <div className="text-red-700 dark:text-red-200 leading-normal">
+                    <span className="font-bold">Run-Rate Alert!</span> Based on your current calendar progress, you are on track to spend <span className="font-extrabold text-red-800 dark:text-red-100">₹{forecastStats.currentMonthProjected.toFixed(0)}</span> this month, exceeding your historical average monthly spending of <span className="font-bold text-red-800 dark:text-red-100">₹{forecastStats.averageRunRate.toFixed(0)}</span>. Consider tightening expenses!
                   </div>
                 </div>
               ) : (
@@ -928,13 +928,13 @@ export default function AssistantPage() {
 
               {/* Forecast Numbers Grid */}
               <div className="grid grid-cols-2 gap-3 pt-2 text-center border-t border-white/5">
-                <div className="bg-slate-950/20 p-2.5 rounded-lg border border-white/2">
+                <div className="bg-slate-50/50 dark:bg-slate-950/20 p-2.5 rounded-lg border border-slate-200/50 dark:border-white/5">
                   <p className="text-[9px] text-slate-500 uppercase font-semibold">AI Next Month Projection</p>
-                  <p className="text-base font-extrabold text-violet-400 mt-0.5">₹{forecastStats.forecastedAmount.toFixed(0)}</p>
+                  <p className="text-base font-extrabold text-violet-700 dark:text-violet-400 mt-0.5">₹{forecastStats.forecastedAmount.toFixed(0)}</p>
                 </div>
-                <div className="bg-slate-950/20 p-2.5 rounded-lg border border-white/2">
+                <div className="bg-slate-50/50 dark:bg-slate-950/20 p-2.5 rounded-lg border border-slate-200/50 dark:border-white/5">
                   <p className="text-[9px] text-slate-500 uppercase font-semibold">Average monthly run-rate</p>
-                  <p className="text-base font-extrabold text-slate-300 mt-0.5">₹{forecastStats.averageRunRate.toFixed(0)}</p>
+                  <p className="text-base font-extrabold text-slate-700 dark:text-slate-300 mt-0.5">₹{forecastStats.averageRunRate.toFixed(0)}</p>
                 </div>
               </div>
 
@@ -942,27 +942,27 @@ export default function AssistantPage() {
               <div className="pt-3 border-t border-white/5 space-y-2">
                 <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">AI Behavioral Seasonality Insights</p>
                 <div className="grid grid-cols-2 gap-2 text-left">
-                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                  <div className="bg-slate-50/50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
                     <span className="text-[9px] text-slate-500 font-semibold">Weekend Surge</span>
-                    <span className="text-xs font-bold text-white mt-1">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">
                       {forecastStats.weekendSurge > 5
                         ? `+${forecastStats.weekendSurge.toFixed(0)}% spending`
                         : "Flat weekend curve"}
                     </span>
                   </div>
-                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                  <div className="bg-slate-50/50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
                     <span className="text-[9px] text-slate-500 font-semibold">Payday Boundary Effect</span>
-                    <span className="text-xs font-bold text-white mt-1">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">
                       {forecastStats.paydaySpike ? "Spikes Detected (1st/30th)" : "Consistent monthly spread"}
                     </span>
                   </div>
-                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                  <div className="bg-slate-50/50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
                     <span className="text-[9px] text-slate-500 font-semibold">Variance Fit ($R^2$)</span>
-                    <span className="text-xs font-bold text-white mt-1">{(forecastStats.rSquared * 100).toFixed(0)}% accuracy</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">{(forecastStats.rSquared * 100).toFixed(0)}% accuracy</span>
                   </div>
-                  <div className="bg-slate-900/40 p-2 rounded-lg border border-white/2 flex flex-col justify-between">
+                  <div className="bg-slate-50/50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
                     <span className="text-[9px] text-slate-500 font-semibold">Mitigated Outliers</span>
-                    <span className="text-xs font-bold text-white mt-1">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">
                       {forecastStats.outliersCount > 0
                         ? `${forecastStats.outliersCount} anomalies capped`
                         : "No major spikes"}
@@ -976,7 +976,7 @@ export default function AssistantPage() {
           {/* Section 2: Smart Subscription Detector & Calendar */}
           <Card className="glass border-white/5 shadow-xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-white font-bold flex items-center gap-2">
+              <CardTitle className="text-sm text-slate-900 dark:text-white font-bold flex items-center gap-2">
                 <Calendar className="h-4.5 w-4.5 text-violet-400" />
                 Upcoming Subscriptions (AI Scan)
               </CardTitle>
@@ -991,13 +991,13 @@ export default function AssistantPage() {
                 </div>
               ) : (
                 activeSubscriptions.map((sub, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-slate-950/20 p-3 rounded-xl border border-white/3">
+                  <div key={idx} className="flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/20 p-3 rounded-xl border border-slate-200/50 dark:border-white/5">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 font-bold shrink-0">
                         {sub.merchant.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate">{sub.merchant}</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{sub.merchant}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <Badge className="bg-violet-500/20 text-violet-300 text-[8px] py-0 px-1 border-violet-500/20">
                             {sub.cycle}
@@ -1010,7 +1010,7 @@ export default function AssistantPage() {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-extrabold text-white">₹{sub.amount.toFixed(0)}</p>
+                      <p className="text-xs font-extrabold text-slate-900 dark:text-white">₹{sub.amount.toFixed(0)}</p>
                       <span className={`text-[9px] block mt-0.5 ${
                         sub.daysRemaining <= 3 
                           ? "text-red-400 font-bold animate-pulse" 

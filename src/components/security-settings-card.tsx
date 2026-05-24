@@ -49,7 +49,7 @@ export function SecuritySettingsCard() {
               <Fingerprint className="w-4 h-4 text-indigo-400" />
             </div>
             <div>
-              <CardTitle className="text-base text-white font-semibold">
+              <CardTitle className="text-base text-slate-900 dark:text-white font-semibold">
                 Biometric Lock
               </CardTitle>
               <CardDescription className="text-slate-500 text-xs">
@@ -87,9 +87,9 @@ export function SecuritySettingsCard() {
               {active ? (
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               ) : (
-                <XCircle className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                <XCircle className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" />
               )}
-              <span className={active ? "text-slate-300" : "text-slate-600"}>{text}</span>
+              <span className={active ? "text-slate-700 dark:text-slate-300" : "text-slate-400 dark:text-slate-600"}>{text}</span>
             </div>
           ))}
         </div>

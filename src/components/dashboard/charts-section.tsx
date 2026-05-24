@@ -49,7 +49,7 @@ export function ChartsSection({
       {/* Monthly Trend Chart */}
       <Card className="glass border-white/5 lg:col-span-8">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
+          <CardTitle className="text-lg text-slate-900 dark:text-white font-bold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-violet-400" />
             Monthly Comparison
           </CardTitle>
@@ -89,7 +89,7 @@ export function ChartsSection({
       {/* Category Breakdown (Pie) */}
       <Card className="glass border-white/5 lg:col-span-4">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
+          <CardTitle className="text-lg text-slate-900 dark:text-white font-bold flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-violet-400" />
             Category Spend
           </CardTitle>
@@ -134,14 +134,14 @@ export function ChartsSection({
                 </ResponsiveContainer>
               </div>
               {/* Custom Legend */}
-              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 pt-2 border-t border-border/20">
-                {pieChartData.slice(0, 4).map((entry) => (
-                  <div key={entry.name} className="flex items-center gap-1.5 truncate">
+              <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[10px] text-slate-500 dark:text-slate-400 pt-2 border-t border-border/20 max-h-16 overflow-y-auto pr-1">
+                {pieChartData.map((entry) => (
+                  <div key={entry.name} className="flex items-center gap-1.5 shrink-0">
                     <div
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: CATEGORY_COLORS[entry.name] }}
                     />
-                    <span className="truncate">{entry.name}: ₹{entry.value.toFixed(0)}</span>
+                    <span>{entry.name}: ₹{entry.value.toFixed(0)}</span>
                   </div>
                 ))}
               </div>

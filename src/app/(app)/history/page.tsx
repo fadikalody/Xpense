@@ -199,10 +199,10 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
             Transaction History <FileSpreadsheet className="h-6 w-6 text-violet-400" />
           </h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             Query, manage, filter, and export your logged income and expenses
           </p>
         </div>
@@ -235,13 +235,13 @@ export default function HistoryPage() {
       {/* Filter Card */}
       <Card className="glass border-white/5 shadow-xl">
         <CardHeader className="pb-3 border-b border-border/40">
-          <CardTitle className="text-sm font-semibold text-slate-300">Advanced Query Filters</CardTitle>
+          <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">Advanced Query Filters</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
             {/* Search */}
             <div className="sm:col-span-6 space-y-1">
-              <Label htmlFor="search" className="text-xs text-slate-400">Search Merchant/Source</Label>
+              <Label htmlFor="search" className="text-xs text-slate-500 dark:text-slate-400">Search Merchant/Source</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                 <Input
@@ -249,19 +249,19 @@ export default function HistoryPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="e.g. Starbucks..."
-                  className="pl-9 bg-slate-950/40 border-slate-800 text-white placeholder:text-slate-600"
+                  className="pl-9 bg-slate-100/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 />
               </div>
             </div>
 
             {/* Category Filter */}
             <div className="sm:col-span-3 space-y-1">
-              <Label htmlFor="category" className="text-xs text-slate-400">Category</Label>
+              <Label htmlFor="category" className="text-xs text-slate-500 dark:text-slate-400">Category</Label>
               <Select
                 id="category"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-slate-950/40 border-slate-800 text-white"
+                className="bg-slate-100/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
               >
                 <option value="All">All Categories</option>
                 {categories.map((c) => (
@@ -275,7 +275,7 @@ export default function HistoryPage() {
               <Button
                 variant="outline"
                 onClick={toggleSort}
-                className="w-full border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                className="w-full border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white cursor-pointer"
               >
                 <ArrowUpDown className="mr-2 h-4 w-4" />
                 Sort: Date ({sortOrder.toUpperCase()})
@@ -286,25 +286,25 @@ export default function HistoryPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/20">
             {/* Start Date */}
             <div className="space-y-1">
-              <Label htmlFor="start-date" className="text-xs text-slate-400">From Date</Label>
+              <Label htmlFor="start-date" className="text-xs text-slate-500 dark:text-slate-400">From Date</Label>
               <Input
                 id="start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="bg-slate-950/40 border-slate-800 text-white"
+                className="bg-slate-100/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
               />
             </div>
 
             {/* End Date */}
             <div className="space-y-1">
-              <Label htmlFor="end-date" className="text-xs text-slate-400">To Date</Label>
+              <Label htmlFor="end-date" className="text-xs text-slate-500 dark:text-slate-400">To Date</Label>
               <Input
                 id="end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="bg-slate-950/40 border-slate-800 text-white"
+                className="bg-slate-100/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
               />
             </div>
           </div>
@@ -344,14 +344,14 @@ export default function HistoryPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <h4 className="font-bold text-white text-sm sm:text-base">{tx.merchant_name}</h4>
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">{tx.merchant_name}</h4>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {tx.date.split("T")[0]}
                         </span>
                         <span className="text-slate-600">•</span>
-                        <Badge variant="secondary" className="px-2 py-0 text-[10px] bg-slate-900 text-slate-300 font-semibold border-slate-800">
+                        <Badge variant="secondary" className="px-2 py-0 text-[10px] bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-semibold border-slate-200 dark:border-slate-800">
                           {tx.category}
                         </Badge>
                       </div>
@@ -360,7 +360,7 @@ export default function HistoryPage() {
 
                   {/* Actions & Price */}
                   <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-0 border-border/10 pt-2 sm:pt-0">
-                    <div className={`text-right font-bold text-sm sm:text-base ${tx.type === "income" ? "text-emerald-400" : "text-slate-100"
+                    <div className={`text-right font-bold text-sm sm:text-base ${tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-900 dark:text-slate-100"
                       }`}>
                       {tx.type === "income" ? "+" : "-"}₹{tx.amount.toFixed(2)}
                     </div>
@@ -371,7 +371,7 @@ export default function HistoryPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full border border-white/5 hover:bg-violet-500/10 text-violet-400 cursor-pointer"
+                          className="h-8 w-8 rounded-full border border-slate-200 dark:border-white/5 hover:bg-violet-500/10 text-violet-500 dark:text-violet-400 cursor-pointer"
                           onClick={() => openReceiptModal(tx.receipt_image_url!, tx.merchant_name)}
                           title="View Receipt File"
                         >
@@ -383,7 +383,7 @@ export default function HistoryPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-full border border-white/5 hover:bg-red-500/10 text-red-400 cursor-pointer"
+                        className="h-8 w-8 rounded-full border border-slate-200 dark:border-white/5 hover:bg-red-500/10 text-red-500 dark:text-red-400 cursor-pointer"
                         onClick={() => handleDeleteTransaction(tx.id)}
                         title="Delete record"
                       >

@@ -169,7 +169,7 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
+              className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium transition-colors"
             >
               Sign in here
             </Link>

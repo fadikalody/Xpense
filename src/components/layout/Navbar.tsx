@@ -90,6 +90,18 @@ export function Navbar() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  // Lock background scroll when App Settings panel is open
+  useEffect(() => {
+    if (settingsOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [settingsOpen]);
+
   const handleLogout = async () => {
     setProfileOpen(false);
     await supabase.auth.signOut();
@@ -218,21 +230,6 @@ export function Navbar() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2">
-            {/* Theme Toggle */}
-            {mounted && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-5 w-5 text-amber-400" />
-                ) : (
-                  <Moon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                )}
-              </Button>
-            )}
 
             {/* Profile Avatar + Dropdown */}
             <div className="hidden md:block relative" ref={profileRef}>
@@ -259,13 +256,7 @@ export function Navbar() {
               {/* Dropdown Panel */}
               {profileOpen && (
                 <div
-                  className="absolute right-0 top-[calc(100%+8px)] w-72 rounded-2xl overflow-hidden shadow-2xl shadow-black/40 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
-                  style={{
-                    background: "rgba(15,23,42,0.95)",
-                    backdropFilter: "blur(20px)",
-                    WebkitBackdropFilter: "blur(20px)",
-                    border: "1px solid rgba(139,92,246,0.2)",
-                  }}
+                  className="absolute right-0 top-[calc(100%+8px)] w-72 rounded-2xl overflow-hidden shadow-2xl shadow-black/40 z-50 animate-in fade-in slide-in-from-top-2 duration-200 glass border-violet-500/20"
                   role="menu"
                   aria-labelledby="profile-menu-button"
                 >
@@ -452,8 +443,8 @@ export function Navbar() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{username || "User"}</p>
-                    <p className="text-xs text-slate-500 truncate">{userEmail}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{username || "User"}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userEmail}</p>
                   </div>
                 </div>
 
@@ -463,17 +454,17 @@ export function Navbar() {
                     setMobileMenuOpen(false);
                     setSettingsOpen(true);
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-white transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
                 >
-                  <Settings className="h-5 w-5" />
+                  <Settings className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                   <span className="text-base font-medium">App Settings</span>
-                  <ChevronRight className="h-4 w-4 ml-auto text-slate-600" />
+                  <ChevronRight className="h-4 w-4 ml-auto text-slate-400 dark:text-slate-600" />
                 </button>
 
                 {/* Mobile Sign Out */}
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors cursor-pointer"
                 >
                   <LogOut className="h-5 w-5" />
                   <span className="text-base font-medium">Sign Out</span>
@@ -495,24 +486,17 @@ export function Navbar() {
 
           {/* Slide-over panel */}
           <div
-            className="fixed right-0 top-0 h-full z-50 w-full max-w-sm flex flex-col animate-in slide-in-from-right duration-300"
-            style={{
-              background: "rgba(7,10,24,0.98)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              borderLeft: "1px solid rgba(139,92,246,0.2)",
-              boxShadow: "-20px 0 60px rgba(0,0,0,0.5)",
-            }}
+            className="fixed right-0 top-0 h-full z-50 w-full max-w-sm flex flex-col animate-in slide-in-from-right duration-300 glass border-l border-violet-500/20 shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
               <div>
-                <h2 className="text-white font-bold text-lg">App Settings</h2>
+                <h2 className="text-slate-900 dark:text-white font-bold text-lg">App Settings</h2>
                 <p className="text-slate-500 text-xs mt-0.5">Notifications &amp; Security</p>
               </div>
               <button
                 onClick={() => setSettingsOpen(false)}
-                className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/30 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full border border-border/60 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-400 dark:hover:border-white/30 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -520,14 +504,51 @@ export function Navbar() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Interface Theme Switch */}
+              <div className="glass border-white/5 p-4 rounded-xl shadow-md space-y-3">
+                <div>
+                  <h3 className="text-sm text-slate-900 dark:text-white font-bold flex items-center gap-2">
+                    {theme === "dark" ? <Moon className="h-4 w-4 text-violet-400" /> : <Sun className="h-4 w-4 text-amber-400" />}
+                    Interface Theme
+                  </h3>
+                  <p className="text-slate-500 text-[10px] mt-0.5">
+                    Choose between light or dark visual layouts
+                  </p>
+                </div>
+                <div className="flex bg-slate-950/60 p-1 rounded-xl border border-white/5">
+                  <button
+                    onClick={() => setTheme("light")}
+                    className={`flex-1 text-center py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      theme === "light"
+                        ? "bg-violet-600 text-white shadow-md shadow-violet-950/40"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Sun className="h-3.5 w-3.5" />
+                    Light Mode
+                  </button>
+                  <button
+                    onClick={() => setTheme("dark")}
+                    className={`flex-1 text-center py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      theme === "dark"
+                        ? "bg-violet-600 text-white shadow-md shadow-violet-950/40"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Moon className="h-3.5 w-3.5" />
+                    Dark Mode
+                  </button>
+                </div>
+              </div>
+
               <NotificationSettingsCard />
               <SecuritySettingsCard />
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-white/5 flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-slate-600" />
-              <span className="text-[11px] text-slate-600">Settings are stored locally on this device</span>
+            <div className="px-5 py-3 border-t border-border/40 flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-slate-500" />
+              <span className="text-[11px] text-slate-500">Settings are stored locally on this device</span>
             </div>
           </div>
         </>

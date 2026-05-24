@@ -23,7 +23,7 @@ export function StatsSection({ totalIncome, totalExpense, balance }: StatsSectio
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-emerald-400">
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             ₹{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
           <p className="text-[10px] text-slate-500 mt-1">Combined total income logged</p>
@@ -40,7 +40,7 @@ export function StatsSection({ totalIncome, totalExpense, balance }: StatsSectio
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-400">
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
             ₹{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
           <p className="text-[10px] text-slate-500 mt-1">Combined expenses scan & manual</p>
@@ -57,7 +57,7 @@ export function StatsSection({ totalIncome, totalExpense, balance }: StatsSectio
           </div>
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold ${balance >= 0 ? "text-violet-300" : "text-red-400"}`}>
+          <div className={`text-2xl font-bold ${balance >= 0 ? "text-violet-700 dark:text-violet-300" : "text-red-600 dark:text-red-400"}`}>
             {balance < 0 && "-"}₹{Math.abs(balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
           <p className="text-[10px] text-slate-500 mt-1">Disposable funds remaining</p>

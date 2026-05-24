@@ -30,7 +30,7 @@ export function BudgetsSection({
     <Card className="glass border-white/5">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-lg text-white font-bold flex items-center gap-2">
+          <CardTitle className="text-lg text-slate-900 dark:text-white font-bold flex items-center gap-2">
             <Wallet className="h-5 w-5 text-violet-400" />
             Monthly Budgets
           </CardTitle>
@@ -62,11 +62,11 @@ export function BudgetsSection({
               return (
                 <div className="space-y-1 bg-gradient-to-r from-violet-950/20 to-indigo-950/20 p-3 rounded-lg border border-violet-500/10 shadow-lg shadow-violet-950/5">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="text-violet-300 flex items-center gap-1.5">
+                    <span className="text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-violet-400 shrink-0 shadow-sm animate-pulse" />
                       Total Budget
                     </span>
-                    <span className={isTotalOver ? "text-red-400 font-extrabold" : "text-violet-200"}>
+                    <span className={isTotalOver ? "text-red-600 dark:text-red-400 font-extrabold" : "text-violet-700 dark:text-violet-200"}>
                       ₹{totalSpent.toFixed(0)} <span className="text-slate-500 font-normal">/ ₹{totalLimit.toFixed(0)}</span>
                     </span>
                   </div>

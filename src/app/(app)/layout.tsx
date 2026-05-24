@@ -7,7 +7,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200">
+    <div className="relative min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200 overflow-x-hidden">
       {/* Dynamic atmospheric radial glows */}
       <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-violet-600/5 blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 left-1/4 w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-3xl pointer-events-none" />
